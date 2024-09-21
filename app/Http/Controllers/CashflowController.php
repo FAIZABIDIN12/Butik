@@ -187,44 +187,54 @@ class CashflowController extends Controller
     }
    
     public function profitLossReport()
-{
-    // Ambil kategori untuk laba rugi dan beban biaya
-    $profitLossCategory = Category::where('code', 202)->first(); // Penjualan
-    $expenseCategory = Category::where('code', 201)->first(); // Pembelian Barang Dagang
-
-    // Ambil total untuk pendapatan
-    $totalIncome = Cashflow::where('category_code', $profitLossCategory->code)->sum('amount');
+    {
+        // Ambil kategori untuk laba rugi dan beban biaya
+        $profitLossCategory = Category::where('code', 202)->first(); // Penjualan
+        $expenseCategory = Category::where('code', 201)->first(); // Pembelian Barang Dagang
     
-    // Ambil total untuk beban biaya
-    $totalExpense = Cashflow::where('category_code', $expenseCategory->code)->sum('amount');
-
-    // Ambil akun terkait
-    $incomeAccount = $profitLossCategory->creditAccount; // Akun untuk kategori Pendapatan
-    $expenseAccount = $expenseCategory->debitAccount; // Akun untuk kategori Beban Biaya
-
-    // Siapkan data untuk laporan
-    $profitLossAccounts = [
-        [
-            'code' => $incomeAccount->code,
-            'name' => $incomeAccount->name,
-            'balance' => $totalIncome,
-        ]
-    ];
-
-    $expenseAccounts = [
-        [
-            'code' => $expenseAccount->code,
-            'name' => $expenseAccount->name,
-            'balance' => $totalExpense,
-        ]
-    ];
-
-    // Hitung laba rugi bersih
-    $netProfitLoss = $totalIncome - $totalExpense;
-
-    // Kirim data ke view
-    return view('cashflows.profit_loss_report', compact('profitLossAccounts', 'expenseAccounts', 'totalIncome', 'totalExpense', 'netProfitLoss'));
-}
-
+        // Cek apakah kategori laba rugi dan beban biaya ditemukan
+        if (!$profitLossCategory || !$expenseCategory) {
+            return redirect()->back()->withErrors('Kategori tidak ditemukan.');
+        }
+    
+        // Ambil total untuk pendapatan
+        $totalIncome = Cashflow::where('category_code', $profitLossCategory->code)->sum('amount');
+    
+        // Ambil total untuk beban biaya
+        $totalExpense = Cashflow::where('category_code', $expenseCategory->code)->sum('amount');
+    
+        // Ambil akun terkait
+        $incomeAccount = $profitLossCategory->creditAccount; // Akun untuk kategori Pendapatan
+        $expenseAccount = $expenseCategory->debitAccount; // Akun untuk kategori Beban Biaya
+    
+        // Pastikan akun pendapatan dan beban biaya tidak null
+        if (!$incomeAccount || !$expenseAccount) {
+            return redirect()->back()->withErrors('Akun tidak ditemukan.');
+        }
+    
+        // Siapkan data untuk laporan
+        $profitLossAccounts = [
+            [
+                'code' => $incomeAccount->code,
+                'name' => $incomeAccount->name,
+                'balance' => $totalIncome,
+            ]
+        ];
+    
+        $expenseAccounts = [
+            [
+                'code' => $expenseAccount->code,
+                'name' => $expenseAccount->name,
+                'balance' => $totalExpense,
+            ]
+        ];
+    
+        // Hitung laba rugi bersih
+        $netProfitLoss = $totalIncome - $totalExpense;
+    
+        // Kirim data ke view
+        return view('cashflows.profit_loss_report', compact('profitLossAccounts', 'expenseAccounts', 'totalIncome', 'totalExpense', 'netProfitLoss'));
+    }
+    
     
 }

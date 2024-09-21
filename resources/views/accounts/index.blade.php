@@ -147,10 +147,10 @@
                         <input type="text" class="form-control" id="edit_name" name="name" required>
                     </div>
                     <select class="form-control" id="edit_position" name="position" required>
-                        <option value="asset" {{ $account->position == 'asset' ? 'selected' : '' }}>Aktiva</option>
-                        <option value="liability" {{ $account->position == 'liability' ? 'selected' : '' }}>Pasiva</option>
-                        <option value="revenue" {{ $account->position == 'revenue' ? 'selected' : '' }}>Laba Rugi</option>
-                        <option value="expense" {{ $account->position == 'expense' ? 'selected' : '' }}>Beban Biaya</option>
+                    <option value="asset" {{ old('position') == 'asset' ? 'selected' : '' }}>Aktiva</option>
+                        <option value="liability" {{ old('position') == 'liability' ? 'selected' : '' }}>Pasiva</option>
+                        <option value="revenue" {{ old('position') == 'revenue' ? 'selected' : '' }}>Laba Rugi</option>
+                        <option value="expense" {{ old('position') == 'expense' ? 'selected' : '' }}>Beban Biaya</option>
                     </select>
 
                     <div class="form-group">
