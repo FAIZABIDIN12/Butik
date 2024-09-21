@@ -122,7 +122,7 @@ class PenjualanController extends Controller
     ]);
 
     // Update saldo akun Pendapatan HPP BD
-    $pendapatanAccount = Account::where('code', '203')->first(); // Pastikan kode sesuai
+    $pendapatanAccount = Account::where('code', '103')->first(); // Pastikan kode sesuai
     if ($pendapatanAccount) {
         $pendapatanAccount->current_balance += $request->total; // Tambah saldo pendapatan
         $pendapatanAccount->save();

@@ -78,20 +78,28 @@
             </li>
             <li class="header">Accounting</li>
             <li>
-                <a href="{{ route('accounts.index') }}">
-                    <i class="fa fa-file-pdf-o"></i> <span>Akun</span>
-                </a>
-            </li>
-            <li>
-                <a href="{{ route('categories.index') }}">
-                    <i class="fa fa-file-pdf-o"></i> <span>Jenis Transaksi</span>
-                </a>
-            </li>
-            <li>
-                <a href="{{ route('cashflows.index') }}">
-                    <i class="fa fa-file-pdf-o"></i> <span>Cash Flow</span>
-                </a>
-            </li>
+<li>
+    <a href="{{ route('accounts.index') }}">
+        <i class="fa fa-users"></i> <span>Akun</span>
+    </a>
+</li>
+<li>
+    <a href="{{ route('categories.index') }}">
+        <i class="fa fa-tags"></i> <span>Jenis Transaksi</span>
+    </a>
+</li>
+<li>
+    <a href="{{ route('cashflows.index') }}">
+        <i class="fa fa-credit-card"></i> <span>Cash Flow</span>
+    </a>
+</li>
+<li>
+    <a href="{{ route('cashflows.profitLossReport') }}">
+        <i class="fa fa-line-chart"></i> <span>Laporan Laba Rugi</span>
+    </a>
+</li>
+
+
             <li class="header">SYSTEM</li>
             <li>
                 <a href="{{ route('user.index') }}">
