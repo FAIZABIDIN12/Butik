@@ -123,6 +123,7 @@ Route::group(['middleware' => 'auth'], function () {
         Route::get('/cashflows/{id}/edit', [CashflowController::class, 'edit'])->name('cashflows.edit');
         Route::put('/cashflows/{id}', [CashflowController::class, 'update'])->name('cashflows.update');
         Route::delete('/cashflows/{id}', [CashflowController::class, 'destroy'])->name('cashflows.destroy');
+        Route::get('cashflows/profit-loss-report', [CashflowController::class, 'profitLossReport'])->name('cashflows.profitLossReport');
     });
 
     Route::group(['middleware' => 'level:1,2'], function () {
