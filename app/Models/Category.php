@@ -9,22 +9,17 @@ class Category extends Model
 {
     use HasFactory;
 
-    protected $primaryKey = 'code'; 
-    public $incrementing = false; 
-    protected $keyType = 'string'; 
+    protected $fillable = ['code', 'name', 'debit_account_code', 'credit_account_code', 'note', 'type'];
 
-    protected $fillable = [
-        'code',
-        'type',
-        'name',
-        'debit_account_code',
-        'credit_account_code',
-        'note',
-    ];
+    protected $primaryKey = 'code';
+    public $incrementing = false;
+    protected $keyType = 'string';
 
-    public $timestamps = true;
+    public function transactions()
+    {
+        return $this->hasMany(Transaction::class, 'category_code', 'code');
+    }
 
-    // Definisikan relasi dengan model Account
     public function debitAccount()
     {
         return $this->belongsTo(Account::class, 'debit_account_code', 'code');

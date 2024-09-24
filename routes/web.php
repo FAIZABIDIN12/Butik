@@ -16,7 +16,8 @@ use App\Http\Controllers\{
     UserController,
     AccountController,
     CategoryController,
-    CashflowController,
+    TransactionController,
+    ReportController,
 };
 use Illuminate\Support\Facades\Route;
 
@@ -79,7 +80,6 @@ Route::group(['middleware' => 'auth'], function () {
         Route::get('/transaksi/selesai', [PenjualanController::class, 'selesai'])->name('transaksi.selesai');
         Route::get('/transaksi/nota-kecil', [PenjualanController::class, 'notaKecil'])->name('transaksi.nota_kecil');
         Route::get('/transaksi/nota-besar', [PenjualanController::class, 'notaBesar'])->name('transaksi.nota_besar');
-
         Route::get('/transaksi/{id}/data', [PenjualanDetailController::class, 'data'])->name('transaksi.data');
         Route::get('/transaksi/loadform/{diskon}/{total}/{diterima}', [PenjualanDetailController::class, 'loadForm'])->name('transaksi.load_form');
         Route::resource('/transaksi', PenjualanDetailController::class)
@@ -117,17 +117,18 @@ Route::group(['middleware' => 'auth'], function () {
     });
     
     Route::group(['middleware' => 'level:1,2'], function () {
-        Route::get('/cashflows', [CashflowController::class, 'index'])->name('cashflows.index');
-        Route::get('/cashflows/create', [CashflowController::class, 'create'])->name('cashflows.create');
-        Route::post('/cashflows', [CashflowController::class, 'store'])->name('cashflows.store');
-        Route::get('/cashflows/{id}/edit', [CashflowController::class, 'edit'])->name('cashflows.edit');
-        Route::put('/cashflows/{id}', [CashflowController::class, 'update'])->name('cashflows.update');
-        Route::delete('/cashflows/{id}', [CashflowController::class, 'destroy'])->name('cashflows.destroy');
-        Route::get('cashflows/profit-loss-report', [CashflowController::class, 'profitLossReport'])->name('cashflows.profitLossReport');
+        Route::get('/transaction', [TransactionController::class, 'index'])->name('transaction.index');
+        Route::post('/transaction/store', [TransactionController::class, 'store'])->name('transaction.store');
+        Route::delete('/transaction/delete/{id}', [TransactionController::class, 'destroy'])->name('transaction.destroy');
+        Route::post('import', [TransactionController::class, 'import'])->name('transaction.import');
+        Route::get('data', [TransactionController::class, 'getData'])->name('transaction.data'); // Add this line
+        Route::get('labarugi', [TransactionController::class, 'showLabaRugi'])->name('transaction.labarugi');
+    });
+
+    Route::get('/profit-loss-report', [ReportController::class, 'profitLossReport'])->name('report.profit_loss');
     });
 
     Route::group(['middleware' => 'level:1,2'], function () {
         Route::get('/profil', [UserController::class, 'profil'])->name('user.profil');
         Route::post('/profil', [UserController::class, 'updateProfil'])->name('user.update_profil');
     });
-});

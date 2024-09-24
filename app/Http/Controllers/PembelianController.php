@@ -3,12 +3,14 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+use App\Models\LedgerEntry;
 use App\Models\Pembelian;
 use App\Models\PembelianDetail;
 use App\Models\Produk;
-use App\Models\Cashflow;
 use App\Models\Account;
 use App\Models\Supplier;
+use App\Models\Transaction; 
 
 class PembelianController extends Controller
 {
@@ -81,14 +83,14 @@ class PembelianController extends Controller
             'diskon' => 'required|numeric',
             'bayar' => 'required|numeric',
         ]);
-    
+
         $pembelian = Pembelian::findOrFail($request->id_pembelian);
         $pembelian->total_item = $request->total_item;
-        $pembelian->total_harga = $request->total;
+        $pembelian->total_harga = $request->total; // Ensure you have a 'total' field in your request
         $pembelian->diskon = $request->diskon;
         $pembelian->bayar = $request->bayar;
         $pembelian->update();
-    
+
         // Update stok produk
         $detail = PembelianDetail::where('id_pembelian', $pembelian->id_pembelian)->get();
         foreach ($detail as $item) {
@@ -96,40 +98,56 @@ class PembelianController extends Controller
             $produk->stok += $item->jumlah;
             $produk->update();
         }
-    
+
         // Ambil kategori dan akun terkait
         $cashflowAmount = $request->total; // Total pembayaran
         $cashflowCategoryCode = '201'; // Kode kategori untuk pembelian barang dagang
-    
+
         // Simpan transaksi cashflow
-        Cashflow::create([
-            'date' => now(),
+        $transaction = Transaction::create([
+            'transaction_at' => now(),
             'description' => 'Pembelian barang: ' . $pembelian->id_pembelian,
             'transaction_type' => 'out', // Transaksi keluar
             'amount' => $cashflowAmount,
+            'nominal' => $cashflowAmount,
+            'user_id' => auth::id(),
             'category_code' => $cashflowCategoryCode,
-            'current_balance' => 0,
         ]);
-    
+
         // Update saldo akun HPP Barang Dagang
         $hppAccount = Account::where('code', '102')->first(); // Pastikan kode sesuai
         if ($hppAccount) {
             $hppAccount->current_balance += $request->total; // Tambah saldo HPP
             $hppAccount->save();
+            // Create ledger entry for HPP account
+            LedgerEntry::create([
+                'transaction_id' => $transaction->id,
+                'account_code' => $hppAccount->code,
+                'entry_date' => now(),
+                'entry_type' => 'debit',
+                'amount' => $request->total,
+                'balance' => $hppAccount->current_balance, // Saldo setelah transaksi
+            ]);
         }
-    
+
         // Update saldo akun Kas Butik
         $kasButikAccount = Account::where('code', '100')->first(); // Pastikan kode sesuai
         if ($kasButikAccount) {
             $kasButikAccount->current_balance -= $request->total; // Kurangi saldo Kas Butik
             $kasButikAccount->save();
+            // Create ledger entry for Kas Butik account
+            LedgerEntry::create([
+                'transaction_id' => $transaction->id,
+                'account_code' => $kasButikAccount->code,
+                'entry_date' => now(),
+                'entry_type' => 'credit',
+                'amount' => -$request->total, // Negative for credit
+                'balance' => $kasButikAccount->current_balance, // Saldo setelah transaksi
+            ]);
         }
-    
+
         return redirect()->route('pembelian.index')->with('success', 'Pembelian berhasil disimpan dan cashflow diperbarui.');
     }
-    
-
-
     public function show($id)
     {
         $detail = PembelianDetail::with('produk')->where('id_pembelian', $id)->get();
