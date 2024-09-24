@@ -89,17 +89,10 @@
     </a>
 </li>
 <li>
-    <a href="{{ route('cashflows.index') }}">
-        <i class="fa fa-credit-card"></i> <span>Cash Flow</span>
+    <a href="{{ route('transaction.index') }}">
+        <i class="fa fa-tags"></i> <span>Cashflow</span>
     </a>
 </li>
-<li>
-    <a href="{{ route('cashflows.profitLossReport') }}">
-        <i class="fa fa-line-chart"></i> <span>Laporan Laba Rugi</span>
-    </a>
-</li>
-
-
             <li class="header">SYSTEM</li>
             <li>
                 <a href="{{ route('user.index') }}">

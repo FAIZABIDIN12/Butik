@@ -3,8 +3,8 @@
 namespace App\Providers;
 
 use App\Models\Setting;
-use App\Models\Cashflow;
-use App\Observers\CashflowObserver;
+use App\Models\Transaction;
+use App\Observers\TransactionObserver;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -35,6 +35,6 @@ class AppServiceProvider extends ServiceProvider
     public function boot()
     {
         // Daftarkan observer untuk cashflow
-        Cashflow::observe(CashflowObserver::class);
+        // Transaction::observe(TransactionObserver::class);
     }
 }
