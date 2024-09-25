@@ -31,7 +31,7 @@
             </div>
         </form>
     </div>
-    <div class="col-md-4 text-md-right">
+    <div class="col-md-4 text-md-end">
         <button class="btn btn-success mb-3" data-toggle="modal" data-target="#addTransactionModal">Tambah Transaksi</button>
     </div>
 </div>
@@ -39,7 +39,7 @@
                 <table class="table table-striped table-bordered" id="transactions-table">
                 <thead>
     <tr>
-        <th>ID</th>
+        <th>Date</th>
         <th>Code</th>
         <th>Deskripsi</th>
         <th>Kategori</th>
@@ -52,7 +52,7 @@
 <tbody>
     @foreach ($transactions as $transaction)
         <tr>
-            <td>{{ $transaction->id }}</td>
+            <td>{{ $transaction->transaction_at }}</td>
             <td>{{ $transaction->category ? $transaction->category->code : 'N/A' }}</td>
             <td>{{ $transaction->description }}</td>
             <td>{{ $transaction->category ? $transaction->category->name : 'N/A' }}</td>
@@ -72,8 +72,6 @@
 <div>
     <h3>Total Saldo: {{ number_format($saldo, 2) }}</h3>
 </div>
-
-
 
                 <!-- Modal Tambah Transaksi -->
                 <div class="modal fade" id="addTransactionModal" tabindex="-1" role="dialog" aria-labelledby="addTransactionModalLabel" aria-hidden="true">

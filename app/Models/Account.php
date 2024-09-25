@@ -17,7 +17,7 @@ class Account extends Model
 
     public function debetCategories()
     {
-        return $this->hasMany(Category::class, 'debet', 'code');
+        return $this->hasMany(Category::class, 'debit', 'code');
     }
 
     public function creditCategories()
