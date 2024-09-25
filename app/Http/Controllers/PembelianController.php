@@ -11,6 +11,7 @@ use App\Models\Produk;
 use App\Models\Account;
 use App\Models\Supplier;
 use App\Models\Transaction; 
+use App\Models\MonthlyBalance; 
 
 class PembelianController extends Controller
 {
@@ -83,14 +84,14 @@ class PembelianController extends Controller
             'diskon' => 'required|numeric',
             'bayar' => 'required|numeric',
         ]);
-
+    
         $pembelian = Pembelian::findOrFail($request->id_pembelian);
         $pembelian->total_item = $request->total_item;
         $pembelian->total_harga = $request->total; // Ensure you have a 'total' field in your request
         $pembelian->diskon = $request->diskon;
         $pembelian->bayar = $request->bayar;
         $pembelian->update();
-
+    
         // Update stok produk
         $detail = PembelianDetail::where('id_pembelian', $pembelian->id_pembelian)->get();
         foreach ($detail as $item) {
@@ -98,11 +99,11 @@ class PembelianController extends Controller
             $produk->stok += $item->jumlah;
             $produk->update();
         }
-
+    
         // Ambil kategori dan akun terkait
         $cashflowAmount = $request->total; // Total pembayaran
         $cashflowCategoryCode = '201'; // Kode kategori untuk pembelian barang dagang
-
+    
         // Simpan transaksi cashflow
         $transaction = Transaction::create([
             'transaction_at' => now(),
@@ -113,7 +114,7 @@ class PembelianController extends Controller
             'user_id' => auth::id(),
             'category_code' => $cashflowCategoryCode,
         ]);
-
+    
         // Update saldo akun HPP Barang Dagang
         $hppAccount = Account::where('code', '102')->first(); // Pastikan kode sesuai
         if ($hppAccount) {
@@ -129,7 +130,7 @@ class PembelianController extends Controller
                 'balance' => $hppAccount->current_balance, // Saldo setelah transaksi
             ]);
         }
-
+    
         // Update saldo akun Kas Butik
         $kasButikAccount = Account::where('code', '100')->first(); // Pastikan kode sesuai
         if ($kasButikAccount) {
@@ -145,9 +146,37 @@ class PembelianController extends Controller
                 'balance' => $kasButikAccount->current_balance, // Saldo setelah transaksi
             ]);
         }
-
+    
+        // Update Monthly Balance
+        $this->updateMonthlyBalance($cashflowAmount);
+    
         return redirect()->route('pembelian.index')->with('success', 'Pembelian berhasil disimpan dan cashflow diperbarui.');
     }
+    
+    private function updateMonthlyBalance($amount)
+    {
+        $currentMonth = now()->format('m');
+        $currentYear = now()->format('Y');
+    
+        // Check if there is an existing monthly balance for this month
+        $monthlyBalance = MonthlyBalance::where('month', $currentMonth)
+                                        ->where('year', $currentYear)
+                                        ->first();
+    
+        if ($monthlyBalance) {
+            // If a record exists, update the amount
+            $monthlyBalance->amount += $amount; // Add to existing balance
+            $monthlyBalance->save();
+        } else {
+            // Create a new record if none exists
+            MonthlyBalance::create([
+                'month' => $currentMonth,
+                'year' => $currentYear,
+                'amount' => $amount,
+            ]);
+        }
+    }
+    
     public function show($id)
     {
         $detail = PembelianDetail::with('produk')->where('id_pembelian', $id)->get();

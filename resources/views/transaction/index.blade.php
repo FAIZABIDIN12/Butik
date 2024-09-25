@@ -14,7 +14,6 @@
     <div class="col-lg-12 mb-1">
         <div class="box">
             <div class="box-body table-responsive">
-                <h1 class="mb-4">Daftar Transaksi</h1>
                 <div class="row align-items-center mb-4">
     <div class="col-md-8">
         <form id="filter-form" method="GET" action="{{ route('transaction.index') }}">
@@ -118,12 +117,12 @@
         </div>
     </div>
 </div>
-
-@section('scripts')
+@endsection
+@push('scripts')
 <script>
     $(document).ready(function() {
         $('#transactions-table').DataTable();
     });
 </script>
-@endsection
-@endsection
+@endpush
+

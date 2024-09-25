@@ -71,7 +71,6 @@ class TransactionController extends Controller
             'nominal' => 'required|numeric',
         ]);
     
-        // Mencari kategori berdasarkan category_code
         $category = Category::where('code', $request->category_code)->first();
     
         if (!$category) {
@@ -81,6 +80,9 @@ class TransactionController extends Controller
         // Mengambil akun debit dan kredit berdasarkan kategori
         $debetAccount = Account::where('code', $category->debit_account_code)->first();  // HPP Barang Dagang
         $creditAccount = Account::where('code', $category->credit_account_code)->first(); // Kas Butik
+    
+        // Mengambil akun revenue (dengan kode 103)
+        $revenueAccount = Account::where('code', '103')->first();
     
         // Memformat nominal
         $nominal = str_replace('.', '', $request->nominal);
@@ -94,12 +96,16 @@ class TransactionController extends Controller
             'user_id' => Auth::id(),
         ]);
     
-        // Update saldo untuk akun debit dan kredit
-        $this->updateBalance($debetAccount, $nominal, 'debit');  // Menambah saldo HPP Barang Dagang
-        $this->updateBalance($creditAccount, $nominal, 'credit'); // Mengurangi saldo Kas Butik (karena posisi aktiva, kredit mengurangi saldo)
+        // Update saldo untuk akun debit, kredit, dan revenue
+        $this->updateMonthlyBalance($debetAccount, $nominal, 'debit');  
+        $this->updateMonthlyBalance($creditAccount, $nominal, 'credit'); 
     
-        // Mencatat entri jurnal di ledger
-        // Entri debit
+        // Update revenue account (saldo bertambah jika pendapatan)
+        if ($category->type === 'in' && $revenueAccount) {
+            $this->updateMonthlyBalance($revenueAccount, $nominal, 'credit'); // Revenue selalu credit
+        }
+    
+        // Entri jurnal untuk akun debit
         if ($debetAccount) {
             LedgerEntry::create([
                 'transaction_id' => $transaction->id,
@@ -123,18 +129,38 @@ class TransactionController extends Controller
             ]);
         }
     
+        // Entri jurnal untuk revenue account
+        if ($revenueAccount) {
+            LedgerEntry::create([
+                'transaction_id' => $transaction->id,
+                'account_code' => $revenueAccount->code,
+                'entry_date' => now(),
+                'entry_type' => 'credit', // Revenue is always credit
+                'amount' => $nominal,
+                'balance' => $revenueAccount->current_balance,
+            ]);
+        }
+    
         return redirect()->route('transaction.index')->with('success', 'Transaction added successfully.');
     }
     
-    private function updateBalance(?Account $account, $nominal, $type)
+    private function updateMonthlyBalance(?Account $account, $nominal, $type)
     {
         if ($account) {
+            $currentMonth = Carbon::now()->format('m-Y'); // Format bulan dan tahun saat ini
+        
+            // Mencari saldo bulanan untuk akun ini dan bulan ini
+            $monthlyBalance = MonthlyBalance::where('account_code', $account->code)
+                ->where('month', $currentMonth)
+                ->first();
+    
+            // Update current balance sesuai dengan tipe transaksi
             switch ($account->position) {
-                case 'asset':  // Kas Butik adalah Aktiva
+                case 'asset':  
                     if ($type === 'debit') {
-                        $account->current_balance += $nominal;  // Debit menambah saldo
+                        $account->current_balance += $nominal;
                     } elseif ($type === 'credit') {
-                        $account->current_balance -= $nominal;  // Kredit mengurangi saldo
+                        $account->current_balance -= $nominal;
                     }
                     break;
     
@@ -165,6 +191,25 @@ class TransactionController extends Controller
     
             // Simpan perubahan saldo akun
             $account->save();
+    
+            // Update saldo bulanan atau buat catatan baru jika belum ada
+            if ($monthlyBalance) {
+                // Jika sudah ada catatan untuk bulan ini, tambahkan nominalnya
+                if ($type === 'debit') {
+                    $monthlyBalance->balance += $nominal;
+                } elseif ($type === 'credit') {
+                    $monthlyBalance->balance -= $nominal;
+                }
+            } else {
+                // Jika belum ada, buat entri baru untuk saldo bulanan
+                $monthlyBalance = new MonthlyBalance();
+                $monthlyBalance->account_code = $account->code;
+                $monthlyBalance->month = $currentMonth;
+                $monthlyBalance->balance = $account->current_balance; // Menggunakan saldo akun saat ini
+            }
+    
+            // Simpan saldo bulanan
+            $monthlyBalance->save();
         }
     }
     
