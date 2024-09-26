@@ -126,6 +126,7 @@ Route::group(['middleware' => 'auth'], function () {
     });
 
     Route::get('/profit-loss-report', [ReportController::class, 'profitLoss'])->name('report.profit_loss');
+    Route::get('/balance_sheet', [ReportController::class, 'balanceSheet'])->name('report.balance_sheet');
     });
 
     Route::group(['middleware' => 'level:1,2'], function () {

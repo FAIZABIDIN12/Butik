@@ -77,10 +77,9 @@
                 </a>
             </li>
             <li class="header">Accounting</li>
-            <li>
 <li>
     <a href="{{ route('accounts.index') }}">
-        <i class="fa fa-users"></i> <span>Akun</span>
+        <i class="fa fa-briefcase"></i> <span>Akun</span>
     </a>
 </li>
 <li>
@@ -90,14 +89,20 @@
 </li>
 <li>
     <a href="{{ route('transaction.index') }}">
-        <i class="fa fa-tags"></i> <span>Cashflow</span>
+    <i class="fa fa-book" aria-hidden="true"></i> <span>Cashflow</span>
     </a>
 </li>
 <li>
     <a href="{{ route('report.profit_loss') }}">
-        <i class="fa fa-tags"></i> <span>Laba Rugi</span>
+    <i class="fa fa-database" aria-hidden="true"></i> <span>Laba Rugi</span>
     </a>
 </li>
+<li>
+    <a href="{{ route('report.balance_sheet') }}">
+    <i class="fa fa-line-chart" aria-hidden="true"></i> <span>Neraca</span>
+    </a>
+</li>
+
             <li class="header">SYSTEM</li>
             <li>
                 <a href="{{ route('user.index') }}">
