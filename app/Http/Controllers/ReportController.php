@@ -1,52 +1,93 @@
-<?php 
+<?php
 
 namespace App\Http\Controllers;
 
-use App\Models\LedgerEntry;
 use App\Models\Account;
+use App\Models\MonthlyBalance;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 
 class ReportController extends Controller
 {
-    public function profitLossReport(Request $request)
+    public function balanceSheet(Request $request)
     {
-        // Get the selected month from the request, or default to the current month
-        $selectedMonth = $request->input('month') ?: date('Y-m');
+        $period = $request->query('period', Carbon::now()->format('m-Y'));
 
-        // Fetch total income for account code 103 (Pendapatan HPP BD)
-        $totalIncome = LedgerEntry::where('account_code', 103)
-            ->where('entry_type', 'credit')
-            ->whereMonth('entry_date', date('m', strtotime($selectedMonth))) // Filter by month
-            ->whereYear('entry_date', date('Y', strtotime($selectedMonth))) // Filter by year
-            ->sum('amount');
+        if (!preg_match('/^\d{2}-\d{4}$/', $period)) {
+            abort(400, 'Invalid period format. Use mm-yyyy.');
+        }
 
-        // Fetch total HPP for account code 102 (HPP Barang Dagang)
-        $totalHPP = LedgerEntry::where('account_code', 102)
-            ->where('entry_type', 'debit')
-            ->whereMonth('entry_date', date('m', strtotime($selectedMonth))) // Filter by month
-            ->whereYear('entry_date', date('Y', strtotime($selectedMonth))) // Filter by year
-            ->sum('amount');
+        $periods = MonthlyBalance::select('month')->distinct()->orderBy('month', 'desc')->get();
+        $accounts = Account::all();
+        $monthlyBalances = MonthlyBalance::where('month', $period)->get()->keyBy('account_code');
 
-        // Calculate profit/loss
-        $profitLoss = $totalIncome - $totalHPP;
+        $activaAccounts = [];
+        $passivaAccounts = [];
+        $totalActiva = 0;
+        $totalPassiva = 0;
 
-        // If there is a net profit, update the current balance for the Laba Rugi account
-        if ($profitLoss > 0) {
-            // Fetch the Laba Rugi account (using code 103 as an example)
-            $labaRugiAccount = Account::where('code', '104')->first(); // Ensure this is the correct code for Laba Rugi
+        foreach ($accounts as $account) {
+            $balance = $monthlyBalances->get($account->code);
+            $accountBalance = $balance ? $balance->balance : 0;
 
-            if ($labaRugiAccount) {
-                // Update the current balance
-                $labaRugiAccount->current_balance += $profitLoss;
-                $labaRugiAccount->save(); // Save the updated account
+            if ($account->position == 'asset') {
+                $activaAccounts[] = [
+                    'account' => $account,
+                    'balance' => $accountBalance
+                ];
+                $totalActiva += $accountBalance;
+            } elseif ($account->position == 'liability') {
+                $passivaAccounts[] = [
+                    'account' => $account,
+                    'balance' => $accountBalance
+                ];
+                $totalPassiva += $accountBalance;
             }
         }
 
-        // Return the view with the calculated data
-        return view('report.profitloss', [
-            'total_income' => number_format($totalIncome, 2),
-            'total_hpp' => number_format($totalHPP, 2),
-            'profit_loss' => number_format($profitLoss, 2),
-        ]);
+        return view('report.balance_sheet', compact('periods', 'period', 'activaAccounts', 'passivaAccounts', 'totalActiva', 'totalPassiva'));
+    }
+
+    public function profitLoss(Request $request)
+    {
+        $period = $request->query('period', Carbon::now()->format('m-Y'));
+
+        if (!preg_match('/^\d{2}-\d{4}$/', $period)) {
+            abort(400, 'Invalid period format. Use mm-yyyy.');
+        }
+
+        $periods = MonthlyBalance::select('month')->distinct()->orderBy('month', 'desc')->get();
+        $accounts = Account::all();
+        $monthlyBalances = MonthlyBalance::where('month', $period)->get()->keyBy('account_code');
+
+        $incomeAccounts = [];
+        $outcomeAccounts = [];
+        $totalIncome = 0;  
+        $totalOutcome = 0; 
+
+        foreach ($accounts as $account) {
+            // Ambil saldo untuk setiap akun berdasarkan period
+            $balance = $monthlyBalances->get($account->code);
+            $accountBalance = $balance ? $balance->balance : 0;
+
+            if ($account->position == 'revenue') {
+                $incomeAccounts[] = [
+                    'account' => $account,
+                    'balance' => $accountBalance
+                ];
+                $totalIncome += $accountBalance;  
+            } elseif ($account->position == 'expense') {
+                $outcomeAccounts[] = [
+                    'account' => $account,
+                    'balance' => $accountBalance
+                ];
+                $totalOutcome += $accountBalance;  
+            }
+        }
+
+        // Debugging: Tampilkan monthlyBalances
+        // dd($monthlyBalances); // Hapus atau komentari baris ini setelah debugging
+
+        return view('report.profit_loss', compact('periods', 'period', 'incomeAccounts', 'outcomeAccounts', 'totalIncome', 'totalOutcome'));
     }
 }

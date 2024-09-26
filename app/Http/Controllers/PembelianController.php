@@ -111,7 +111,7 @@ class PembelianController extends Controller
             'transaction_type' => 'out', // Transaksi keluar
             'amount' => $cashflowAmount,
             'nominal' => $cashflowAmount,
-            'user_id' => auth::id(),
+            'user_id' => auth()->id(),
             'category_code' => $cashflowCategoryCode,
         ]);
     
@@ -148,34 +148,35 @@ class PembelianController extends Controller
         }
     
         // Update Monthly Balance
-        $this->updateMonthlyBalance($cashflowAmount);
+        $this->updateMonthlyBalance($hppAccount->code, $cashflowAmount); // Pass the account code
     
         return redirect()->route('pembelian.index')->with('success', 'Pembelian berhasil disimpan dan cashflow diperbarui.');
     }
     
-    private function updateMonthlyBalance($amount)
+    private function updateMonthlyBalance($accountCode, $amount)
     {
-        $currentMonth = now()->format('m');
-        $currentYear = now()->format('Y');
+        $currentMonthYear = now()->format('m-Y'); // Format MM-YYYY
     
-        // Check if there is an existing monthly balance for this month
-        $monthlyBalance = MonthlyBalance::where('month', $currentMonth)
-                                        ->where('year', $currentYear)
+        // Cari saldo bulanan berdasarkan kode akun dan bulan
+        $monthlyBalance = MonthlyBalance::where('account_code', $accountCode)
+                                        ->where('month', $currentMonthYear)
                                         ->first();
     
         if ($monthlyBalance) {
-            // If a record exists, update the amount
-            $monthlyBalance->amount += $amount; // Add to existing balance
+            // Jika catatan bulan ini sudah ada, tambahkan jumlahnya
+            $monthlyBalance->balance += $amount; // Update the balance
             $monthlyBalance->save();
         } else {
-            // Create a new record if none exists
+            // Jika catatan bulan ini belum ada, buat catatan baru
             MonthlyBalance::create([
-                'month' => $currentMonth,
-                'year' => $currentYear,
-                'amount' => $amount,
+                'account_code' => $accountCode, 
+                'month' => $currentMonthYear,
+                'balance' => $amount,
             ]);
         }
     }
+    
+    
     
     public function show($id)
     {

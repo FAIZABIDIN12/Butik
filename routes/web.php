@@ -125,7 +125,7 @@ Route::group(['middleware' => 'auth'], function () {
         Route::get('labarugi', [TransactionController::class, 'showLabaRugi'])->name('transaction.labarugi');
     });
 
-    Route::get('/profit-loss-report', [ReportController::class, 'profitLossReport'])->name('report.profit_loss');
+    Route::get('/profit-loss-report', [ReportController::class, 'profitLoss'])->name('report.profit_loss');
     });
 
     Route::group(['middleware' => 'level:1,2'], function () {

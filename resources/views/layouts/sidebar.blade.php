@@ -93,6 +93,11 @@
         <i class="fa fa-tags"></i> <span>Cashflow</span>
     </a>
 </li>
+<li>
+    <a href="{{ route('report.profit_loss') }}">
+        <i class="fa fa-tags"></i> <span>Laba Rugi</span>
+    </a>
+</li>
             <li class="header">SYSTEM</li>
             <li>
                 <a href="{{ route('user.index') }}">
