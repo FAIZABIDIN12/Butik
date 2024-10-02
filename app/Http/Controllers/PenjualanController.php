@@ -112,7 +112,7 @@ class PenjualanController extends Controller
     
           // Ambil kategori dan akun terkait untuk cashflow
     $cashflowAmount = $request->total; // Total penjualan
-    $cashflowCategoryCode = '202'; // Kode kategori untuk penjualan
+    $cashflowCategoryCode = '001'; // Kode kategori untuk penjualan
 
     // Simpan transaksi cashflow
     $transaction = Transaction::create([
@@ -128,9 +128,9 @@ class PenjualanController extends Controller
     ]);
 
     // Update saldo akun Pendapatan HPP BD (Akun 103)
-    $pendapatanAccount = Account::where('code', '103')->first(); // Ambil akun Pendapatan HPP BD
+    $pendapatanAccount = Account::where('code', '401')->first(); // Ambil akun Pendapatan HPP BD
     if ($pendapatanAccount) {
-        $pendapatanAccount->current_balance += $request->total; // Tambah saldo Pendapatan HPP BD
+        $pendapatanAccount->current_balance += $request->total; 
         $pendapatanAccount->save();
 
         // Buat entry untuk ledger akun Pendapatan HPP BD
@@ -140,7 +140,7 @@ class PenjualanController extends Controller
             'entry_date' => now(),
             'entry_type' => 'credit',
             'amount' => $request->total,
-            'balance' => $pendapatanAccount->current_balance, // Saldo setelah transaksi
+            'balance' => $pendapatanAccount->current_balance, 
         ]);
 
         // Update saldo bulanan di Monthly Balance untuk akun Pendapatan HPP BD
@@ -148,7 +148,7 @@ class PenjualanController extends Controller
     }
 
     // Update saldo akun Kas Butik (Akun 100)
-    $kasButikAccount = Account::where('code', '100')->first(); // Ambil akun Kas Butik
+    $kasButikAccount = Account::where('code', '102')->first(); // Ambil akun Kas Butik
     if ($kasButikAccount) {
         $kasButikAccount->current_balance += $request->total; // Tambah saldo Kas Butik
         $kasButikAccount->save();

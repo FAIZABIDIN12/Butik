@@ -104,7 +104,7 @@ class PembelianController extends Controller
     
         // Ambil kategori dan akun terkait
         $cashflowAmount = $request->total; // Total pembayaran
-        $cashflowCategoryCode = '201'; // Kode kategori untuk pembelian barang dagang
+        $cashflowCategoryCode = '011'; // Kode kategori untuk pembelian barang dagang
     
         // Simpan transaksi cashflow
         $transaction = Transaction::create([
@@ -118,7 +118,7 @@ class PembelianController extends Controller
         ]);
     
         // Update saldo akun HPP Barang Dagang
-        $hppAccount = Account::where('code', '102')->first(); // Pastikan kode sesuai
+        $hppAccount = Account::where('code', '103')->first(); // Pastikan kode sesuai
         if ($hppAccount) {
             $hppAccount->current_balance += $request->total; // Tambah saldo HPP
             $hppAccount->save();
@@ -138,7 +138,7 @@ class PembelianController extends Controller
         }
     
         // Update saldo akun Kas Butik
-        $kasButikAccount = Account::where('code', '100')->first(); // Pastikan kode sesuai
+        $kasButikAccount = Account::where('code', '102')->first(); // Pastikan kode sesuai
         if ($kasButikAccount) {
             $kasButikAccount->current_balance -= $request->total; // Kurangi saldo Kas Butik
             $kasButikAccount->save();
@@ -228,8 +228,6 @@ class PembelianController extends Controller
             $monthlyBalance->save();
         }
     }
-    
-    
     
     public function show($id)
     {

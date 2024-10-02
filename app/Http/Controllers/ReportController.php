@@ -33,8 +33,9 @@ class ReportController extends Controller
         $accounts = Account::all();
         $monthlyBalances = MonthlyBalance::where('month', $period)->get()->keyBy('account_code');
     
-        $activaAccounts = [];
-        $passivaAccounts = [];
+        // Separated accounts
+        $activaAccounts = []; // Aset
+        $passivaAccounts = []; // Kewajiban dan Ekuitas
         $totalActiva = 0;
         $totalPassiva = 0;
     
@@ -42,13 +43,14 @@ class ReportController extends Controller
             $balance = $monthlyBalances->get($account->code);
             $accountBalance = $balance ? $balance->balance : 0;
     
+            // Separate into Aset or Kewajiban/Equitas
             if ($account->position == 'asset') {
                 $activaAccounts[] = [
                     'account' => $account,
                     'balance' => $accountBalance
                 ];
                 $totalActiva += $accountBalance;
-            } elseif ($account->position == 'liability') {
+            } elseif ($account->position == 'liability' || $account->position == 'equity') {
                 $passivaAccounts[] = [
                     'account' => $account,
                     'balance' => $accountBalance
@@ -57,9 +59,11 @@ class ReportController extends Controller
             }
         }
     
-        return view('report.balance_sheet', compact('periods', 'period', 'activaAccounts', 'passivaAccounts', 'totalActiva', 'totalPassiva'));
-    }
+        // Check if assets match liabilities + equity
+        $isBalanced = $totalActiva == $totalPassiva;
     
+        return view('report.balance_sheet', compact('periods', 'period', 'activaAccounts', 'passivaAccounts', 'totalActiva', 'totalPassiva', 'isBalanced'));
+    }
     
     public function profitLoss(Request $request)
     {
@@ -69,51 +73,53 @@ class ReportController extends Controller
             abort(400, 'Invalid period format. Use mm-yyyy.');
         }
     
+        // Fetch available periods
         $periods = MonthlyBalance::select('month')->distinct()->orderBy('month', 'desc')->get();
         $accounts = Account::all();
         $monthlyBalances = MonthlyBalance::where('month', $period)->get()->keyBy('account_code');
     
+        // Separate accounts for revenue and expenses
         $incomeAccounts = [];
         $outcomeAccounts = [];
-        $totalIncome = 0;  
-        $totalOutcome = 0; 
+        $totalIncome = 0;
+        $totalOutcome = 0;
     
         foreach ($accounts as $account) {
             $balance = $monthlyBalances->get($account->code);
             $accountBalance = $balance ? $balance->balance : 0;
     
+            // Check for revenue (income) and expense
             if ($account->position == 'revenue') {
                 $incomeAccounts[] = [
                     'account' => $account,
                     'balance' => $accountBalance
                 ];
-                $totalIncome += $accountBalance;  
+                $totalIncome += $accountBalance;
             } elseif ($account->position == 'expense') {
                 $outcomeAccounts[] = [
                     'account' => $account,
                     'balance' => $accountBalance
                 ];
-                $totalOutcome += $accountBalance;  
+                $totalOutcome += $accountBalance;
             }
         }
     
-        // Calculate profit/loss
+        // Calculate profit or loss
         $profitLoss = $totalIncome - $totalOutcome;
     
-        // Define the account code for profit and loss (replace with your actual account code)
-        $profitLossAccountCode = '104'; // Replace with the actual account code for profit/loss
-    
-        // Check if there is already a monthly balance entry for the profit/loss account
+        // Save profit/loss in a specific account if needed
+        $profitLossAccountCode = '203'; // Replace with the actual account code for profit/loss
+        
+        // Get or create a monthly balance entry for the profit/loss account
         $monthlyBalanceEntry = MonthlyBalance::firstOrNew([
             'month' => $period,
             'account_code' => $profitLossAccountCode,
         ]);
     
-        // Update the balance for the profit/loss account
+        // Update and save the balance for profit/loss
         $monthlyBalanceEntry->balance = $profitLoss;
-        $monthlyBalanceEntry->save(); // Save the entry to the database
+        $monthlyBalanceEntry->save();
     
-        return view('report.profit_loss', compact('periods', 'period', 'incomeAccounts', 'outcomeAccounts', 'totalIncome', 'totalOutcome'));
+        return view('report.profit_loss', compact('periods', 'period', 'incomeAccounts', 'outcomeAccounts', 'totalIncome', 'totalOutcome', 'profitLoss'));
     }
-    
 }
