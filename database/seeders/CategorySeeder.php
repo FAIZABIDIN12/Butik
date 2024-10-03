@@ -62,7 +62,7 @@ class CategorySeeder extends Seeder
             ],
             [
                 'code' => '021',
-                'type' => 'out',
+                'type' => 'in',
                 'name' => 'Biaya Gaji Staf Butik',
                 'debit_account_code' => '502',
                 'credit_account_code' => '201', 

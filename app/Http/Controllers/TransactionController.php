@@ -18,11 +18,11 @@ class TransactionController extends Controller
         // Ambil parameter tanggal dari request
         $startDate = $request->get('start_date');
         $endDate = $request->get('end_date');
-    
-        // Format tanggal jika ada, gunakan format Y-m-d agar cocok dengan format date di database
+
+        // Format tanggal jika ada
         $startDateFormatted = $startDate ? Carbon::createFromFormat('Y-m-d', $startDate)->startOfDay() : null;
         $endDateFormatted = $endDate ? Carbon::createFromFormat('Y-m-d', $endDate)->endOfDay() : null;
-    
+
         // Ambil transaksi dengan filter tanggal jika ada
         $transactions = Transaction::with('category')
             ->when($startDateFormatted, function ($query) use ($startDateFormatted) {
@@ -32,17 +32,17 @@ class TransactionController extends Controller
                 return $query->where('transaction_at', '<=', $endDateFormatted);
             })
             ->get();
-    
+
         // Inisialisasi saldo
         $saldo = 0;
-    
-        // Hitung debit, kredit, dan saldo untuk setiap transaksi
+
+        // Hitung saldo untuk setiap transaksi
         foreach ($transactions as $transaction) {
             // Inisialisasi debit dan kredit
             $transaction->debit = 0;
             $transaction->credit = 0;
-    
-            // Tentukan nilai debit dan kredit berdasarkan tipe kategori
+
+            // Hitung saldo cumulatif
             if ($transaction->category) {
                 if ($transaction->category->type === 'in') {
                     $transaction->debit = $transaction->nominal;
@@ -50,149 +50,127 @@ class TransactionController extends Controller
                     $transaction->credit = $transaction->nominal;
                 }
             }
-    
-            // Hitung saldo cumulatif
+            
             $saldo += $transaction->debit - $transaction->credit;
             $transaction->saldo = $saldo;
         }
-    
+
         // Ambil semua akun dan kategori
         $accounts = Account::all();
         $categories = Category::all();
-    
+
         return view('transaction.index', compact('transactions', 'accounts', 'categories', 'startDateFormatted', 'endDateFormatted', 'saldo'));
     }
 
-
     public function store(Request $request)
-{
-    // Validasi input
-    $request->validate([
-        'description' => 'required|string|max:255',
-        'category_code' => 'required|exists:categories,code',
-        'nominal' => 'required|numeric',
-    ]);
-
-    $category = Category::where('code', $request->category_code)->first();
-
-    if (!$category) {
-        return redirect()->back()->withErrors(['category_code' => 'Invalid category code.']);
-    }
-
-    // Mengambil akun debit dan kredit berdasarkan kategori
-    $debetAccount = Account::where('code', $category->debit_account_code)->first(); 
-    $creditAccount = Account::where('code', $category->credit_account_code)->first(); 
-
-    // Memformat nominal
-    $nominal = str_replace('.', '', $request->nominal);
-
-    // Menyimpan transaksi
-    $transaction = Transaction::create([
-        'transaction_at' => now(),
-        'description' => $request->description,
-        'category_code' => $request->category_code,
-        'nominal' => $nominal,
-        'user_id' => Auth::id(),
-    ]);
-
-    // Update saldo untuk akun debit (Kas Butik)
-    if ($debetAccount) {
-        $this->updateMonthlyBalance($debetAccount, $nominal, 'debit'); // Kas Butik bertambah
-        // Entri jurnal untuk akun debit
-        LedgerEntry::create([
-            'transaction_id' => $transaction->id,
-            'account_code' => $debetAccount->code,
-            'entry_date' => now(),
-            'entry_type' => 'debit',
-            'amount' => $nominal,
-            'balance' => $debetAccount->current_balance + $nominal, // Saldo bertambah
+    {
+        // Validasi input
+        $request->validate([
+            'description' => 'required|string|max:255',
+            'category_code' => 'required|exists:categories,code',
+            'nominal' => 'required|numeric',
         ]);
-    }
-
-    // Update saldo untuk akun kredit (Pendapatan HPP BD)
-    if ($creditAccount) {
-        $this->updateMonthlyBalance($creditAccount, $nominal, 'credit'); // Pendapatan HPP BD bertambah
-        // Entri jurnal untuk akun kredit
-        LedgerEntry::create([
-            'transaction_id' => $transaction->id,
-            'account_code' => $creditAccount->code,
-            'entry_date' => now(),
-            'entry_type' => 'credit',
-            'amount' => $nominal,
-            'balance' => $creditAccount->current_balance + $nominal, // Saldo bertambah
+    
+        // Mengambil kategori transaksi
+        $category = Category::where('code', $request->category_code)->first();
+    
+        if (!$category) {
+            return redirect()->back()->withErrors(['category_code' => 'Invalid category code.']);
+        }
+    
+        // Mengambil akun debit dan kredit berdasarkan kategori transaksi
+        $debetAccount = Account::where('code', $category->debit_account_code)->first();
+        $creditAccount = Account::where('code', $category->credit_account_code)->first();
+    
+        // Memformat nominal transaksi ke integer untuk memastikan input tidak bermasalah
+        $nominal = str_replace('.', '', $request->nominal);
+    
+        // Menyimpan transaksi baru
+        $transaction = Transaction::create([
+            'transaction_at' => now(),
+            'description' => $request->description,
+            'category_code' => $request->category_code,
+            'nominal' => $nominal,
+            'user_id' => Auth::id(),
         ]);
+    
+        // Proses akun debit
+        if ($debetAccount) {
+            // Cek jika posisi akun adalah asset atau expense
+            $this->updateMonthlyBalance($debetAccount, $nominal, 'debit');
+            LedgerEntry::create([
+                'transaction_id' => $transaction->id,
+                'account_code' => $debetAccount->code,
+                'entry_date' => now(),
+                'entry_type' => 'debit',
+                'amount' => $nominal,
+                'balance' => $debetAccount->current_balance,
+            ]);
+        }
+    
+        // Proses akun kredit
+        if ($creditAccount) {
+            // Cek jika posisi akun adalah liability atau revenue
+            $this->updateMonthlyBalance($creditAccount, $nominal, 'credit');
+            LedgerEntry::create([
+                'transaction_id' => $transaction->id,
+                'account_code' => $creditAccount->code,
+                'entry_date' => now(),
+                'entry_type' => 'credit',
+                'amount' => $nominal,
+                'balance' => $creditAccount->current_balance,
+            ]);
+        }
+    
+        return redirect()->route('transaction.index')->with('success', 'Transaction added successfully.');
     }
+    
 
-    return redirect()->route('transaction.index')->with('success', 'Transaction added successfully.');
-}
+    private function updateMonthlyBalance(Account $account, $amount, $type)
+    {
+        // Ambil bulan dan tahun saat ini
+        $currentMonth = Carbon::now()->format('Y-m');
+        
+        // Cari atau buat monthly balance untuk akun ini pada bulan berjalan
+        $monthlyBalance = MonthlyBalance::firstOrNew(
+            [
+                'account_code' => $account->code,
+                'month' => $currentMonth,
+            ],
+            [
+                'balance' => 0, // Default balance jika belum ada
+            ]
+        );
 
-private function updateMonthlyBalance(?Account $account, $nominal, $type)
-{
-    if ($account) {
-        $currentMonth = Carbon::now()->format('m-Y'); // Format bulan dan tahun saat ini
-
-        // Mencari saldo bulanan untuk akun ini dan bulan ini
-        $monthlyBalance = MonthlyBalance::where('account_code', $account->code)
-            ->where('month', $currentMonth)
-            ->first();
-
-        // Update current balance sesuai dengan tipe transaksi
+        // Update current balance berdasarkan posisi akun dan tipe transaksi (debit/kredit)
         switch ($account->position) {
-            case 'asset':  
+            case 'asset': // Aktiva
+            case 'expense': // Biaya
                 if ($type === 'debit') {
-                    $account->current_balance += $nominal; // Bertambah untuk debit
-                } elseif ($type === 'credit') {
-                    $account->current_balance -= $nominal; // Berkurang untuk kredit
+                    $account->current_balance += $amount; // Menambah saldo
+                    $monthlyBalance->balance += $amount; // Menambah saldo bulanan
+                } else {
+                    $account->current_balance -= $amount; // Mengurangi saldo
+                    $monthlyBalance->balance -= $amount; // Mengurangi saldo bulanan
                 }
                 break;
 
-            case 'liability':
+            case 'liability': // Liabilitas
+            case 'revenue': // Pendapatan
                 if ($type === 'debit') {
-                    $account->current_balance -= $nominal; // Berkurang untuk debit
-                } elseif ($type === 'credit') {
-                    $account->current_balance += $nominal; // Bertambah untuk kredit
-                }
-                break;
-
-            case 'revenue':
-                if ($type === 'debit') {
-                    $account->current_balance -= $nominal; // Berkurang untuk debit
-                } elseif ($type === 'credit') {
-                    $account->current_balance += $nominal; // Bertambah untuk kredit
-                }
-                break;
-
-            case 'expense':
-                if ($type === 'debit') {
-                    $account->current_balance += $nominal; // Bertambah untuk debit
-                } elseif ($type === 'credit') {
-                    $account->current_balance -= $nominal; // Berkurang untuk kredit
+                    $account->current_balance -= $amount; // Mengurangi saldo
+                    $monthlyBalance->balance -= $amount; // Mengurangi saldo bulanan
+                } else {
+                    $account->current_balance += $amount; // Menambah saldo
+                    $monthlyBalance->balance += $amount; // Menambah saldo bulanan
                 }
                 break;
         }
 
-        // Simpan perubahan saldo akun
+        // Simpan perubahan saldo pada akun dan saldo bulanan
         $account->save();
-
-        // Update saldo bulanan atau buat catatan baru jika belum ada
-        if ($monthlyBalance) {
-            // Jika sudah ada catatan untuk bulan ini, tambahkan nominalnya
-            if ($type === 'debit') {
-                $monthlyBalance->balance += $nominal;
-            } elseif ($type === 'credit') {
-                $monthlyBalance->balance -= $nominal;
-            }
-        } else {
-            // Jika belum ada, buat entri baru untuk saldo bulanan
-            $monthlyBalance = new MonthlyBalance();
-            $monthlyBalance->account_code = $account->code;
-            $monthlyBalance->month = $currentMonth;
-            $monthlyBalance->balance = $account->current_balance; 
-        }
-
-        // Simpan saldo bulanan
         $monthlyBalance->save();
     }
-}
 
-    }
+  
+}
