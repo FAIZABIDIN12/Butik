@@ -3,123 +3,141 @@
 namespace App\Http\Controllers;
 
 use App\Models\Account;
-use App\Models\MonthlyBalance;
-use Carbon\Carbon;
+use App\Models\MonthlyBalance; // Import MonthlyBalance
 use Illuminate\Http\Request;
+use Carbon\Carbon;
 
 class ReportController extends Controller
 {
-    public function balanceSheet(Request $request)
-    {
-        // Default values for month and year
-        $month = $request->query('month', null);
-        $year = $request->query('year', null);
-    
-        // Validate month and year only if they are provided
-        if ($month && $year) {
-            if (!preg_match('/^\d{4}$/', $year) || !preg_match('/^(0[1-9]|1[0-2])$/', $month)) {
-                abort(400, 'Invalid month or year selected.');
-            }
-    
-            // Construct the period in mm-yyyy format
-            $period = "{$month}-{$year}";
-        } else {
-            // Set the default period to the current month and year
-            $period = Carbon::now()->format('m-Y');
-        }
-    
-        // Fetch available periods and data as before
-        $periods = MonthlyBalance::select('month')->distinct()->orderBy('month', 'desc')->get();
-        $accounts = Account::all();
-        $monthlyBalances = MonthlyBalance::where('month', $period)->get()->keyBy('account_code');
-    
-        // Separated accounts
-        $activaAccounts = []; // Aset
-        $passivaAccounts = []; // Kewajiban dan Ekuitas
-        $totalActiva = 0;
-        $totalPassiva = 0;
-    
-        foreach ($accounts as $account) {
-            $balance = $monthlyBalances->get($account->code);
-            $accountBalance = $balance ? $balance->balance : 0;
-    
-            // Separate into Aset or Kewajiban/Equitas
-            if ($account->position == 'asset') {
-                $activaAccounts[] = [
-                    'account' => $account,
-                    'balance' => $accountBalance
-                ];
-                $totalActiva += $accountBalance;
-            } elseif ($account->position == 'liability' || $account->position == 'equity') {
-                $passivaAccounts[] = [
-                    'account' => $account,
-                    'balance' => $accountBalance
-                ];
-                $totalPassiva += $accountBalance;
-            }
-        }
-    
-        // Check if assets match liabilities + equity
-        $isBalanced = $totalActiva == $totalPassiva;
-    
-        return view('report.balance_sheet', compact('periods', 'period', 'activaAccounts', 'passivaAccounts', 'totalActiva', 'totalPassiva', 'isBalanced'));
-    }
-    
     public function profitLoss(Request $request)
     {
-        $period = $request->query('period', Carbon::now()->format('m-Y'));
+        // Ambil parameter bulan dan tahun dari request atau gunakan nilai default
+        $month = $request->get('month', Carbon::now()->format('m'));
+        $year = $request->get('year', Carbon::now()->format('Y'));
+        $startDate = Carbon::createFromFormat('Y-m', $year . '-' . $month)->startOfMonth();
+        $endDate = Carbon::createFromFormat('Y-m', $year . '-' . $month)->endOfMonth();
+        
+        // Ambil akun pendapatan dan biaya
+        $incomeAccounts = Account::where('position', 'revenue')->get();
+        $outcomeAccounts = Account::where('position', 'expense')->get();
     
-        if (!preg_match('/^\d{2}-\d{4}$/', $period)) {
-            abort(400, 'Invalid period format. Use mm-yyyy.');
-        }
-    
-        // Fetch available periods
-        $periods = MonthlyBalance::select('month')->distinct()->orderBy('month', 'desc')->get();
-        $accounts = Account::all();
-        $monthlyBalances = MonthlyBalance::where('month', $period)->get()->keyBy('account_code');
-    
-        // Separate accounts for revenue and expenses
-        $incomeAccounts = [];
-        $outcomeAccounts = [];
+        // Inisialisasi total pendapatan dan biaya
         $totalIncome = 0;
         $totalOutcome = 0;
     
-        foreach ($accounts as $account) {
-            $balance = $monthlyBalances->get($account->code);
-            $accountBalance = $balance ? $balance->balance : 0;
+        // Ambil saldo bulanan untuk akun pendapatan
+        $incomeAccounts = $incomeAccounts->map(function ($account) use ($month, $year) {
+            $monthlyBalance = MonthlyBalance::where('account_code', $account->code)
+                ->where('month', "$year-$month")
+                ->first();
+            $balance = $monthlyBalance ? $monthlyBalance->balance : 0;
+            return [
+                'account' => $account,
+                'balance' => $balance,
+            ];
+        });
     
-            // Check for revenue (income) and expense
-            if ($account->position == 'revenue') {
-                $incomeAccounts[] = [
-                    'account' => $account,
-                    'balance' => $accountBalance
-                ];
-                $totalIncome += $accountBalance;
-            } elseif ($account->position == 'expense') {
-                $outcomeAccounts[] = [
-                    'account' => $account,
-                    'balance' => $accountBalance
-                ];
-                $totalOutcome += $accountBalance;
-            }
-        }
+        // Ambil saldo bulanan untuk akun biaya
+        $outcomeAccounts = $outcomeAccounts->map(function ($account) use ($month, $year) {
+            $monthlyBalance = MonthlyBalance::where('account_code', $account->code)
+                ->where('month', "$year-$month")
+                ->first();
+            $balance = $monthlyBalance ? $monthlyBalance->balance : 0;
+            return [
+                'account' => $account,
+                'balance' => $balance,
+            ];
+        });
     
-        // Calculate profit or loss
+        // Hitung total pendapatan dan biaya
+        $totalIncome = $incomeAccounts->sum('balance');
+        $totalOutcome = $outcomeAccounts->sum('balance');
+    
+        // Hitung laba rugi
         $profitLoss = $totalIncome - $totalOutcome;
     
-        // Save profit/loss in a specific account if needed
-        $profitLossAccountCode = '203'; // Replace with the actual account code for profit/loss
-        
-        // Get or create a monthly balance entry for the profit/loss account
-        $monthlyBalanceEntry = MonthlyBalance::firstOrNew([
-            'month' => $period,
-            'account_code' => $profitLossAccountCode,
+        // Update saldo akun laba rugi (kode 203) di MonthlyBalance
+        $monthlyBalance = MonthlyBalance::where('account_code', '203')
+            ->where('month', "$year-$month")
+            ->first();
+    
+        if ($monthlyBalance) {
+            // Jika sudah ada, update saldo
+            $monthlyBalance->balance = $profitLoss;
+            $monthlyBalance->save();
+        } else {
+            // Jika belum ada, buat entri baru
+            MonthlyBalance::create([
+                'account_code' => '203',
+                'month' => "$year-$month",
+                'balance' => $profitLoss,
+            ]);
+        }
+    
+        // Kirim data ke view
+        return view('report.profit_loss', [
+            'incomeAccounts' => $incomeAccounts,
+            'outcomeAccounts' => $outcomeAccounts,
+            'totalIncome' => $totalIncome,
+            'totalOutcome' => $totalOutcome,
+            'profitLoss' => $profitLoss, // Kirim laba rugi ke view jika perlu
+            'month' => $month,
+            'year' => $year
         ]);
-    
-        // Update and save the balance for profit/loss
-        $monthlyBalanceEntry->balance = $profitLoss;
-        $monthlyBalanceEntry->save();
-    
-        return view('report.profit_loss', compact('periods', 'period', 'incomeAccounts', 'outcomeAccounts', 'totalIncome', 'totalOutcome', 'profitLoss'));
     }
+    
+  
+    public function balanceSheet(Request $request)
+{
+    // Ambil bulan dan tahun dari request atau gunakan nilai default
+    $month = $request->get('month', Carbon::now()->format('m'));
+    $year = $request->get('year', Carbon::now()->format('Y'));
+    
+    // Format bulan untuk querying (misalnya: '10')
+    $formattedMonth = str_pad($month, 2, '0', STR_PAD_LEFT);
+    
+    // Ambil akun aktiva (asset) dan pasiva (liability)
+    $activaAccounts = Account::where('position', 'asset')->get();
+    $passivaAccounts = Account::where('position', 'liability')->get();
+
+    // Ambil saldo bulanan untuk akun aktiva
+    $activaAccounts = $activaAccounts->map(function ($account) use ($formattedMonth, $year) {
+        $monthlyBalance = MonthlyBalance::where('account_code', $account->code)
+            ->where('month', "$year-$formattedMonth") // Perbaiki format bulan
+            ->first();
+        $balance = $monthlyBalance ? $monthlyBalance->balance : 0;
+        return [
+            'account' => $account,
+            'balance' => $balance,
+        ];
+    });
+
+    // Ambil saldo bulanan untuk akun pasiva
+    $passivaAccounts = $passivaAccounts->map(function ($account) use ($formattedMonth, $year) {
+        $monthlyBalance = MonthlyBalance::where('account_code', $account->code)
+            ->where('month', "$year-$formattedMonth") // Perbaiki format bulan
+            ->first();
+        $balance = $monthlyBalance ? $monthlyBalance->balance : 0;
+        return [
+            'account' => $account,
+            'balance' => $balance,
+        ];
+    });
+
+    // Hitung total aktiva dan pasiva
+    $totalActiva = $activaAccounts->sum('balance');
+    $totalPassiva = $passivaAccounts->sum('balance');
+
+    // Kirim data ke view
+    return view('report.balance_sheet', [
+        'activaAccounts' => $activaAccounts,
+        'passivaAccounts' => $passivaAccounts,
+        'totalActiva' => $totalActiva,
+        'totalPassiva' => $totalPassiva,
+        'month' => $month,
+        'year' => $year
+    ]);
+}
+
+    
 }
