@@ -86,7 +86,7 @@ foreach ($transactions as $transaction) {
         $debetAccount = Account::where('code', $category->debit_account_code)->first();
         $creditAccount = Account::where('code', $category->credit_account_code)->first();
     
-        // Memformat nominal transaksi ke integer untuk memastikan input tidak bermasalah
+        // Memformat nominal transaksi ke integer
         $nominal = str_replace('.', '', $request->nominal);
     
         // Menyimpan transaksi baru
@@ -100,7 +100,6 @@ foreach ($transactions as $transaction) {
     
         // Proses akun debit
         if ($debetAccount) {
-            // Cek jika posisi akun adalah asset atau expense
             $this->updateMonthlyBalance($debetAccount, $nominal, 'debit');
             LedgerEntry::create([
                 'transaction_id' => $transaction->id,
@@ -114,7 +113,6 @@ foreach ($transactions as $transaction) {
     
         // Proses akun kredit
         if ($creditAccount) {
-            // Cek jika posisi akun adalah liability atau revenue
             $this->updateMonthlyBalance($creditAccount, $nominal, 'credit');
             LedgerEntry::create([
                 'transaction_id' => $transaction->id,
@@ -126,8 +124,39 @@ foreach ($transactions as $transaction) {
             ]);
         }
     
+        // **Tambahan: Update saldo akun laba rugi (203)**
+    
+        // Ambil atau buat saldo bulanan untuk akun laba rugi (203)
+        $currentMonth = Carbon::now()->format('Y-m');
+        $profitLossAccountCode = '203'; // Kode akun laba rugi
+    
+        // Cari atau buat entri saldo bulanan untuk akun laba rugi
+        $profitLossMonthlyBalance = MonthlyBalance::firstOrNew(
+            [
+                'account_code' => $profitLossAccountCode,
+                'month' => $currentMonth,
+            ],
+            [
+                'balance' => 0, // Default balance jika belum ada
+            ]
+        );
+    
+        // Hitung perubahan saldo laba rugi berdasarkan posisi akun
+        $profitChange = 0;
+        if ($debetAccount && $debetAccount->position === 'expense') {
+            $profitChange -= $nominal; // Biaya mengurangi laba
+        }
+        if ($creditAccount && $creditAccount->position === 'revenue') {
+            $profitChange += $nominal; // Pendapatan menambah laba
+        }
+    
+        // Update saldo akun laba rugi
+        $profitLossMonthlyBalance->balance += $profitChange;
+        $profitLossMonthlyBalance->save();
+    
         return redirect()->route('transaction.index')->with('success', 'Transaction added successfully.');
     }
+    
     
 
     private function updateMonthlyBalance(Account $account, $amount, $type)
