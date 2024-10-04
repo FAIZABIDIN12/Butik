@@ -82,11 +82,11 @@ class PenjualanController extends Controller
     {
         // Validasi input
         $request->validate([
-            'id_member' => 'nullable|exists:members,id', // Validasi untuk member
+            'id_member' => 'nullable|exists:members,id',
             'total_item' => 'required|integer',
             'diskon' => 'required|numeric',
             'bayar' => 'required|numeric',
-            'total' => 'required|numeric', // Validasi total
+            'total' => 'required|numeric',
         ]);
     
         // Temukan penjualan yang ada
@@ -96,7 +96,7 @@ class PenjualanController extends Controller
         $penjualan->total_harga = $request->total;
         $penjualan->diskon = $request->diskon;
         $penjualan->bayar = $request->bayar;
-        $penjualan->diterima = $request->diterima; // Diterima sesuai input
+        $penjualan->diterima = $request->diterima;
         $penjualan->update();
     
         // Update detail penjualan dan stok produk
@@ -110,70 +110,85 @@ class PenjualanController extends Controller
             $produk->update();
         }
     
-          // Ambil kategori dan akun terkait untuk cashflow
-    $cashflowAmount = $request->total; // Total penjualan
-    $cashflowCategoryCode = '001'; // Kode kategori untuk penjualan
-
-    // Simpan transaksi cashflow
-    $transaction = Transaction::create([
-        'date' => now(),
-        'description' => 'Penjualan barang: ' . $penjualan->id_penjualan,
-        'transaction_type' => 'in', // Transaksi masuk
-        'amount' => $cashflowAmount,
-        'nominal' => $cashflowAmount,
-        'category_code' => $cashflowCategoryCode,
-        'current_balance' => 0, // Atur sesuai kebutuhan
-        'user_id' => Auth::id(), // Jika ada relasi dengan pengguna
-        'transaction_at' => now(), // Set the transaction_at value
-    ]);
-
-    // Update saldo akun Pendapatan HPP BD (Akun 103)
-    $pendapatanAccount = Account::where('code', '401')->first(); // Ambil akun Pendapatan HPP BD
-    if ($pendapatanAccount) {
-        $pendapatanAccount->current_balance += $request->total; 
-        $pendapatanAccount->save();
-
-        // Buat entry untuk ledger akun Pendapatan HPP BD
-        LedgerEntry::create([
-            'transaction_id' => $transaction->id,
-            'account_code' => $pendapatanAccount->code,
-            'entry_date' => now(),
-            'entry_type' => 'credit',
-            'amount' => $request->total,
-            'balance' => $pendapatanAccount->current_balance, 
+        // Ambil kategori dan akun terkait untuk cashflow
+        $cashflowAmount = $request->total;
+        $cashflowCategoryCode = '001';
+    
+        // Simpan transaksi cashflow
+        $transaction = Transaction::create([
+            'date' => now(),
+            'description' => 'Penjualan barang: ' . $penjualan->id_penjualan,
+            'transaction_type' => 'in',
+            'amount' => $cashflowAmount,
+            'nominal' => $cashflowAmount,
+            'category_code' => $cashflowCategoryCode,
+            'current_balance' => 0,
+            'user_id' => Auth::id(),
+            'transaction_at' => now(),
         ]);
-
-        // Update saldo bulanan di Monthly Balance untuk akun Pendapatan HPP BD
-        $this->updateMonthlyBalance($pendapatanAccount->code, $request->total);
+    
+        // Update saldo akun Pendapatan HPP BD (Akun 401)
+        $pendapatanAccount = Account::where('code', '401')->first();
+        if ($pendapatanAccount) {
+            $pendapatanAccount->current_balance += $request->total;
+            $pendapatanAccount->save();
+    
+            LedgerEntry::create([
+                'transaction_id' => $transaction->id,
+                'account_code' => $pendapatanAccount->code,
+                'entry_date' => now(),
+                'entry_type' => 'credit',
+                'amount' => $request->total,
+                'balance' => $pendapatanAccount->current_balance,
+            ]);
+    
+            $this->updateMonthlyBalance($pendapatanAccount->code, $request->total);
+        }
+    
+        // Update saldo akun Kas Butik (Akun 102)
+        $kasButikAccount = Account::where('code', '102')->first();
+        if ($kasButikAccount) {
+            $kasButikAccount->current_balance += $request->total;
+            $kasButikAccount->save();
+    
+            LedgerEntry::create([
+                'transaction_id' => $transaction->id,
+                'account_code' => $kasButikAccount->code,
+                'entry_date' => now(),
+                'entry_type' => 'debit',
+                'amount' => -$request->total,
+                'balance' => $kasButikAccount->current_balance,
+            ]);
+    
+            $this->updateMonthlyBalance($kasButikAccount->code, $request->total);
+        }
+    
+        // Update saldo akun Laba Berjalan (Akun 203)
+        $labaBerjalanAccount = Account::where('code', '203')->first();
+        if ($labaBerjalanAccount) {
+            $labaBerjalanAccount->current_balance += $request->total;
+            $labaBerjalanAccount->save();
+    
+            LedgerEntry::create([
+                'transaction_id' => $transaction->id,
+                'account_code' => $labaBerjalanAccount->code,
+                'entry_date' => now(),
+                'entry_type' => 'credit',
+                'amount' => $request->total,
+                'balance' => $labaBerjalanAccount->current_balance,
+            ]);
+    
+            $this->updateMonthlyBalance($labaBerjalanAccount->code, $request->total);
+        }
+    
+        return redirect()->route('transaksi.selesai')->with('success', 'Penjualan berhasil disimpan dan cashflow diperbarui.');
     }
-
-    // Update saldo akun Kas Butik (Akun 100)
-    $kasButikAccount = Account::where('code', '102')->first(); // Ambil akun Kas Butik
-    if ($kasButikAccount) {
-        $kasButikAccount->current_balance += $request->total; // Tambah saldo Kas Butik
-        $kasButikAccount->save();
-
-        // Buat entry untuk ledger akun Kas Butik
-        LedgerEntry::create([
-            'transaction_id' => $transaction->id,
-            'account_code' => $kasButikAccount->code,
-            'entry_date' => now(),
-            'entry_type' => 'debit',
-            'amount' => -$request->total, // Negative untuk debit
-            'balance' => $kasButikAccount->current_balance, // Saldo setelah transaksi
-        ]);
-
-        // Update saldo bulanan di Monthly Balance untuk akun Kas Butik
-        $this->updateMonthlyBalance($kasButikAccount->code, $request->total);
-    }
-
-    return redirect()->route('transaksi.selesai')->with('success', 'Penjualan berhasil disimpan dan cashflow diperbarui.');
-}
+    
     
     // Fungsi untuk memperbarui saldo bulanan
     private function updateMonthlyBalance($accountCode, $amount)
     {
-        $currentMonthYear = now()->format('m-Y'); // Format MM-YYYY
+        $currentMonthYear = now()->format('Y-m'); // Format MM-YYYY
     
         // Cari saldo bulanan berdasarkan kode akun dan bulan
         $monthlyBalance = MonthlyBalance::where('account_code', $accountCode)
@@ -193,7 +208,6 @@ class PenjualanController extends Controller
             ]);
         }
     }
-    
     
     
     public function show($id)

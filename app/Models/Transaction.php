@@ -46,4 +46,8 @@ class Transaction extends Model
          // Assuming 'nominal' is positive for incoming and negative for outgoing
          return self::sum('nominal');
      }
+     public function produk()
+     {
+         return $this->belongsTo(Produk::class, 'id_produk');
+     }
 }
