@@ -36,24 +36,28 @@ class TransactionController extends Controller
         // Inisialisasi saldo
         $saldo = 0;
 
-        // Hitung saldo untuk setiap transaksi
-        foreach ($transactions as $transaction) {
-            // Inisialisasi debit dan kredit
-            $transaction->debit = 0;
-            $transaction->credit = 0;
+      // Hitung saldo untuk setiap transaksi
+foreach ($transactions as $transaction) {
+    // Inisialisasi debit dan kredit
+    $transaction->debit = 0;
+    $transaction->credit = 0;
 
-            // Hitung saldo cumulatif
-            if ($transaction->category) {
-                if ($transaction->category->type === 'in') {
-                    $transaction->debit = $transaction->nominal;
-                } elseif ($transaction->category->type === 'out') {
-                    $transaction->credit = $transaction->nominal;
-                }
-            }
-            
-            $saldo += $transaction->debit - $transaction->credit;
-            $transaction->saldo = $saldo;
+    // Hitung saldo cumulatif
+    if ($transaction->category) {
+        if ($transaction->category->type === 'in') {
+            $transaction->debit = $transaction->nominal;
+        } elseif ($transaction->category->type === 'out') {
+            $transaction->credit = $transaction->nominal;
+        } elseif ($transaction->category->type === 'mutation') {
+            // Misalkan kita anggap mutation sebagai kredit
+            $transaction->credit = $transaction->nominal;
         }
+    }
+
+    // Update saldo
+    $saldo += $transaction->debit - $transaction->credit;
+    $transaction->saldo = $saldo;
+}
 
         // Ambil semua akun dan kategori
         $accounts = Account::all();
@@ -172,5 +176,78 @@ class TransactionController extends Controller
         $monthlyBalance->save();
     }
 
-  
+    public function edit($id)
+    {
+        $transaction = Transaction::findOrFail($id); // Fetch the transaction by ID
+        return response()->json(['transaction' => $transaction]); // Return the transaction data as JSON
+    }
+    
+    public function update(Request $request, $id)
+    {
+        $transaction = Transaction::findOrFail($id); // Fetch the transaction by ID
+    
+        // Validate the request
+        $request->validate([
+            'description' => 'required|string',
+            'category_code' => 'required|string',
+            'nominal' => 'required|numeric',
+        ]);
+    
+        // Store the old nominal value to adjust the balances
+        $oldNominal = $transaction->nominal;
+    
+        // Update the transaction with new data
+        $transaction->description = $request->description;
+        $transaction->category_code = $request->category_code;
+        $transaction->nominal = $request->nominal; // Adjust according to your attribute names
+        $transaction->save(); // Save the changes
+    
+        // Adjust the account balances for the update
+        $this->adjustAccountBalances($transaction, $oldNominal, $request->nominal);
+    
+        return response()->json(['success' => 'Transaction updated successfully!']);
+    }
+    
+    private function adjustAccountBalances($transaction, $oldNominal, $newNominal)
+    {
+        // Determine the category of the transaction
+        $category = Category::where('code', $transaction->category_code)->first();
+    
+        // Retrieve the debit and credit accounts
+        $debetAccount = Account::where('code', $category->debit_account_code)->first();
+        $creditAccount = Account::where('code', $category->credit_account_code)->first();
+    
+        // Adjust balances for the old nominal
+        $this->updateMonthlyBalance($debetAccount, $oldNominal, 'credit'); // Reverse the effect of old debit
+        $this->updateMonthlyBalance($creditAccount, $oldNominal, 'debit'); // Reverse the effect of old credit
+    
+        // Adjust balances for the new nominal
+        $this->updateMonthlyBalance($debetAccount, $newNominal, 'debit'); // Apply the new debit
+        $this->updateMonthlyBalance($creditAccount, $newNominal, 'credit'); // Apply the new credit
+    }
+    
+    
+    public function destroy($id)
+    {
+        $transaction = Transaction::findOrFail($id);
+    
+        // Get the nominal value and category code before deleting
+        $nominal = $transaction->nominal;
+        $category = Category::where('code', $transaction->category_code)->first();
+    
+        // Retrieve the debit and credit accounts
+        $debetAccount = Account::where('code', $category->debit_account_code)->first();
+        $creditAccount = Account::where('code', $category->credit_account_code)->first();
+    
+        // Adjust balances for the deleted transaction
+        $this->updateMonthlyBalance($debetAccount, $nominal, 'credit'); // Reverse the effect of debit
+        $this->updateMonthlyBalance($creditAccount, $nominal, 'debit'); // Reverse the effect of credit
+    
+        // Delete the transaction
+        $transaction->delete();
+    
+        return redirect()->route('transaction.index')->with('success', 'Transaction deleted successfully.');
+    }
+    
+    
 }

@@ -119,11 +119,20 @@ Route::group(['middleware' => 'auth'], function () {
     Route::group(['middleware' => 'level:1,2'], function () {
         Route::get('/transaction', [TransactionController::class, 'index'])->name('transaction.index');
         Route::post('/transaction/store', [TransactionController::class, 'store'])->name('transaction.store');
-        Route::delete('/transaction/delete/{id}', [TransactionController::class, 'destroy'])->name('transaction.destroy');
+        
+        // Updated DELETE route
+        Route::delete('/transaction/{id}', [TransactionController::class, 'destroy'])->name('transaction.destroy');
+    
         Route::post('import', [TransactionController::class, 'import'])->name('transaction.import');
-        Route::get('data', [TransactionController::class, 'getData'])->name('transaction.data'); // Add this line
+        Route::get('data', [TransactionController::class, 'getData'])->name('transaction.data');
         Route::get('labarugi', [TransactionController::class, 'showLabaRugi'])->name('transaction.labarugi');
+    
+        // Routes for editing and updating transactions
+        Route::get('/transaction/{id}/edit', [TransactionController::class, 'edit'])->name('transaction.edit');
+        Route::put('/transaction/{id}', [TransactionController::class, 'update'])->name('transaction.update');
     });
+    
+    
 
     Route::get('/profit-loss-report', [ReportController::class, 'profitLoss'])->name('report.profit_loss');
     Route::get('/balance_sheet', [ReportController::class, 'balanceSheet'])->name('report.balance_sheet');
