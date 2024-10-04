@@ -56,24 +56,6 @@ class ReportController extends Controller
         // Hitung laba rugi
         $profitLoss = $totalIncome - $totalOutcome;
     
-        // Update saldo akun laba rugi (kode 203) di MonthlyBalance
-        $monthlyBalance = MonthlyBalance::where('account_code', '203')
-            ->where('month', "$year-$month")
-            ->first();
-    
-        if ($monthlyBalance) {
-            // Jika sudah ada, update saldo
-            $monthlyBalance->balance = $profitLoss;
-            $monthlyBalance->save();
-        } else {
-            // Jika belum ada, buat entri baru
-            MonthlyBalance::create([
-                'account_code' => '203',
-                'month' => "$year-$month",
-                'balance' => $profitLoss,
-            ]);
-        }
-    
         // Kirim data ke view
         return view('report.profit_loss', [
             'incomeAccounts' => $incomeAccounts,
