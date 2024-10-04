@@ -13,13 +13,27 @@
 <div class="row">
     <div class="col-lg-12">
         <div class="box">
-            <div class="box-header with-border">
-                <div class="btn-group">
-                    <button onclick="addForm('{{ route('produk.store') }}')" class="btn btn-success btn-xs btn-flat"><i class="fa fa-plus-circle"></i> Tambah</button>
-                    <button onclick="deleteSelected('{{ route('produk.delete_selected') }}')" class="btn btn-danger btn-xs btn-flat"><i class="fa fa-trash"></i> Hapus</button>
-                    <button onclick="cetakBarcode('{{ route('produk.cetak_barcode') }}')" class="btn btn-info btn-xs btn-flat"><i class="fa fa-barcode"></i> Cetak Barcode</button>
-                </div>
-            </div>
+        <div class="box-header with-border">
+    <div class="btn-group">
+        <button onclick="addForm('{{ route('produk.store') }}')" class="btn btn-success btn-xs btn-flat">
+            <i class="fa fa-plus-circle"></i> Tambah Produk
+        </button>
+        <button onclick="deleteSelected('{{ route('produk.delete_selected') }}')" class="btn btn-danger btn-xs btn-flat">
+            <i class="fa fa-trash"></i> Hapus
+        </button>
+    </div>
+    
+    <!-- <div class="btn-group pull-right">
+        <button onclick="cekStokBertambah('{{ route('produk.cek_stok_bertambah') }}')" class="btn btn-primary btn-xs btn-flat">
+            <i class="fa fa-plus"></i> Cek Stok (Bertambah)
+        </button>
+        <button onclick="cekStokBerkurang('{{ route('produk.cek_stok_berkurang') }}')" class="btn btn-warning btn-xs btn-flat">
+            <i class="fa fa-minus"></i> Cek Stok (Berkurang)
+        </button>
+    </div> -->
+</div>
+
+
             <div class="box-body table-responsive">
                 <form action="" method="post" class="form-produk">
                     @csrf
@@ -177,5 +191,51 @@
                 .submit();
         }
     }
+    function cekStokBertambah(url) {
+    if ($('input:checked').length < 1) {
+        alert('Pilih produk untuk menambahkan stok');
+        return;
+    }
+
+    let jumlah = prompt("Masukkan jumlah stok yang akan ditambahkan:", "0");
+    if (jumlah != null && jumlah != "" && jumlah > 0) {
+        $.post(url, {
+                '_token': $('[name=csrf-token]').attr('content'),
+                'jumlah': jumlah,
+                'produk': $('.form-produk').serialize(),
+            })
+            .done((response) => {
+                table.ajax.reload();
+                alert('Stok berhasil ditambah');
+            })
+            .fail((errors) => {
+                alert('Tidak dapat menambahkan stok');
+            });
+    }
+}
+
+function cekStokBerkurang(url) {
+    if ($('input:checked').length < 1) {
+        alert('Pilih produk untuk mengurangi stok');
+        return;
+    }
+
+    let jumlah = prompt("Masukkan jumlah stok yang akan dikurangi:", "0");
+    if (jumlah != null && jumlah != "" && jumlah > 0) {
+        $.post(url, {
+                '_token': $('[name=csrf-token]').attr('content'),
+                'jumlah': jumlah,
+                'produk': $('.form-produk').serialize(),
+            })
+            .done((response) => {
+                table.ajax.reload();
+                alert('Stok berhasil dikurangi');
+            })
+            .fail((errors) => {
+                alert('Tidak dapat mengurangi stok');
+            });
+    }
+}
+
 </script>
 @endpush

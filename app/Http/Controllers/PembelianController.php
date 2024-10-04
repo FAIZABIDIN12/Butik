@@ -87,14 +87,15 @@ class PembelianController extends Controller
             'bayar' => 'required|numeric',
         ]);
     
+        // Mengambil data pembelian dan update
         $pembelian = Pembelian::findOrFail($request->id_pembelian);
         $pembelian->total_item = $request->total_item;
-        $pembelian->total_harga = $request->total; // Ensure you have a 'total' field in your request
+        $pembelian->total_harga = $request->total; // Pastikan ada 'total' pada request
         $pembelian->diskon = $request->diskon;
         $pembelian->bayar = $request->bayar;
         $pembelian->update();
     
-        // Update stok produk
+        // Update stok produk berdasarkan pembelian
         $detail = PembelianDetail::where('id_pembelian', $pembelian->id_pembelian)->get();
         foreach ($detail as $item) {
             $produk = Produk::find($item->id_produk);
@@ -102,11 +103,11 @@ class PembelianController extends Controller
             $produk->update();
         }
     
-        // Ambil kategori dan akun terkait
+        // Ambil kategori transaksi pembelian dan jumlah pembayaran
         $cashflowAmount = $request->total; // Total pembayaran
         $cashflowCategoryCode = '011'; // Kode kategori untuk pembelian barang dagang
     
-        // Simpan transaksi cashflow
+        // Simpan transaksi cashflow untuk pembelian
         $transaction = Transaction::create([
             'transaction_at' => now(),
             'description' => 'Pembelian barang: ' . $pembelian->id_pembelian,
@@ -163,54 +164,15 @@ class PembelianController extends Controller
     private function updateMonthlyBalance(?Account $account, $nominal, $type)
     {
         if ($account) {
-            $currentMonth = Carbon::now()->format('m-Y'); // Format bulan dan tahun saat ini
-        
+            $currentMonth = Carbon::now()->format('Y-m'); // Format bulan dan tahun saat ini
+            
             // Mencari saldo bulanan untuk akun ini dan bulan ini
             $monthlyBalance = MonthlyBalance::where('account_code', $account->code)
                 ->where('month', $currentMonth)
                 ->first();
     
-            // Update current balance sesuai dengan tipe transaksi
-            switch ($account->position) {
-                case 'asset':  
-                    if ($type === 'debit') {
-                        $account->current_balance += $nominal;
-                    } elseif ($type === 'credit') {
-                        $account->current_balance -= $nominal;
-                    }
-                    break;
-    
-                case 'liability':
-                    if ($type === 'debit') {
-                        $account->current_balance -= $nominal;
-                    } elseif ($type === 'credit') {
-                        $account->current_balance += $nominal;
-                    }
-                    break;
-    
-                case 'revenue':
-                    if ($type === 'debit') {
-                        $account->current_balance -= $nominal;
-                    } elseif ($type === 'credit') {
-                        $account->current_balance += $nominal;
-                    }
-                    break;
-    
-                case 'expense':
-                    if ($type === 'debit') {
-                        $account->current_balance += $nominal;
-                    } elseif ($type === 'credit') {
-                        $account->current_balance -= $nominal;
-                    }
-                    break;
-            }
-    
-            // Simpan perubahan saldo akun
-            $account->save();
-    
-            // Update saldo bulanan atau buat catatan baru jika belum ada
+            // Update saldo bulanan sesuai tipe transaksi
             if ($monthlyBalance) {
-                // Jika sudah ada catatan untuk bulan ini, tambahkan nominalnya
                 if ($type === 'debit') {
                     $monthlyBalance->balance += $nominal;
                 } elseif ($type === 'credit') {
@@ -221,13 +183,14 @@ class PembelianController extends Controller
                 $monthlyBalance = new MonthlyBalance();
                 $monthlyBalance->account_code = $account->code;
                 $monthlyBalance->month = $currentMonth;
-                $monthlyBalance->balance = $account->current_balance; // Menggunakan saldo akun saat ini
+                $monthlyBalance->balance = $account->current_balance;
             }
     
             // Simpan saldo bulanan
             $monthlyBalance->save();
         }
     }
+    
     
     public function show($id)
     {

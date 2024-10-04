@@ -46,6 +46,8 @@ Route::group(['middleware' => 'auth'], function () {
         Route::get('/produk/data', [ProdukController::class, 'data'])->name('produk.data');
         Route::post('/produk/delete-selected', [ProdukController::class, 'deleteSelected'])->name('produk.delete_selected');
         Route::post('/produk/cetak-barcode', [ProdukController::class, 'cetakBarcode'])->name('produk.cetak_barcode');
+        Route::post('/produk/cek-stok-bertambah', [ProdukController::class, 'cekStokBertambah'])->name('produk.cek_stok_bertambah');
+        Route::post('/produk/cek-stok-berkurang', [ProdukController::class, 'cekStokBerkurang'])->name('produk.cek_stok_berkurang');
         Route::resource('/produk', ProdukController::class);
 
         Route::get('/member/data', [MemberController::class, 'data'])->name('member.data');
