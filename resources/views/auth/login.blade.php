@@ -46,7 +46,7 @@
                 <!-- /.col -->
             </div>
         </form>
-        <br><center><p>Repost by <a href='https://stokcoding.com/' title='StokCoding.com' target='_blank'>StokCoding.com</a></p></center>
+        <br><center><p>Butik SGH by <a href='https://satyagrahahotel.com/' title='Satyagrahahotel.com' target='_blank'>Satya Graha Hotel</a></p></center>
         
     </div>
     <!-- /.login-box-body -->
