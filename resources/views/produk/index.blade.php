@@ -13,27 +13,13 @@
 <div class="row">
     <div class="col-lg-12">
         <div class="box">
-        <div class="box-header with-border">
-    <div class="btn-group">
-        <button onclick="addForm('{{ route('produk.store') }}')" class="btn btn-success btn-xs btn-flat">
-            <i class="fa fa-plus-circle"></i> Tambah Produk
-        </button>
-        <button onclick="deleteSelected('{{ route('produk.delete_selected') }}')" class="btn btn-danger btn-xs btn-flat">
-            <i class="fa fa-trash"></i> Hapus
-        </button>
-    </div>
-    
-    <!-- <div class="btn-group pull-right">
-        <button onclick="cekStokBertambah('{{ route('produk.cek_stok_bertambah') }}')" class="btn btn-primary btn-xs btn-flat">
-            <i class="fa fa-plus"></i> Cek Stok (Bertambah)
-        </button>
-        <button onclick="cekStokBerkurang('{{ route('produk.cek_stok_berkurang') }}')" class="btn btn-warning btn-xs btn-flat">
-            <i class="fa fa-minus"></i> Cek Stok (Berkurang)
-        </button>
-    </div> -->
-</div>
-
-
+            <div class="box-header with-border">
+                <div class="btn-group">
+                    <button onclick="addForm('{{ route('produk.store') }}')" class="btn btn-success btn-xs btn-flat"><i class="fa fa-plus-circle"></i> Tambah</button>
+                    <button onclick="deleteSelected('{{ route('produk.delete_selected') }}')" class="btn btn-danger btn-xs btn-flat"><i class="fa fa-trash"></i> Hapus</button>
+                    <button onclick="cetakBarcode('{{ route('produk.cetak_barcode') }}')" class="btn btn-info btn-xs btn-flat"><i class="fa fa-barcode"></i> Cetak Barcode</button>
+                </div>
+            </div>
             <div class="box-body table-responsive">
                 <form action="" method="post" class="form-produk">
                     @csrf
@@ -59,7 +45,8 @@
         </div>
     </div>
 </div>
-
+@includeIf('produk.reduce_stock_modal')
+@includeIf('produk.add_stock_modal')
 @includeIf('produk.form')
 @endsection
 
@@ -191,51 +178,54 @@
                 .submit();
         }
     }
-    function cekStokBertambah(url) {
-    if ($('input:checked').length < 1) {
-        alert('Pilih produk untuk menambahkan stok');
-        return;
-    }
-
-    let jumlah = prompt("Masukkan jumlah stok yang akan ditambahkan:", "0");
-    if (jumlah != null && jumlah != "" && jumlah > 0) {
-        $.post(url, {
-                '_token': $('[name=csrf-token]').attr('content'),
-                'jumlah': jumlah,
-                'produk': $('.form-produk').serialize(),
-            })
-            .done((response) => {
-                table.ajax.reload();
-                alert('Stok berhasil ditambah');
-            })
-            .fail((errors) => {
-                alert('Tidak dapat menambahkan stok');
-            });
-    }
+    function addStockForm(url, produkId) {
+    $('#modal-add-stock').modal('show'); // Tampilkan modal
+    $('#modal-add-stock form').attr('action', url); // Set action ke URL yang diberikan
+    $('#modal-add-stock [name=jumlah]').val(''); // Reset input jumlah
+    $('#modal-add-stock #produk_id').val(produkId); // Isi produk_id
 }
 
-function cekStokBerkurang(url) {
-    if ($('input:checked').length < 1) {
-        alert('Pilih produk untuk mengurangi stok');
-        return;
-    }
-
-    let jumlah = prompt("Masukkan jumlah stok yang akan dikurangi:", "0");
-    if (jumlah != null && jumlah != "" && jumlah > 0) {
-        $.post(url, {
-                '_token': $('[name=csrf-token]').attr('content'),
-                'jumlah': jumlah,
-                'produk': $('.form-produk').serialize(),
-            })
-            .done((response) => {
-                table.ajax.reload();
-                alert('Stok berhasil dikurangi');
-            })
-            .fail((errors) => {
-                alert('Tidak dapat mengurangi stok');
-            });
-    }
+$('#modal-add-stock form').on('submit', function (e) {
+    e.preventDefault();
+    $.ajax({
+        type: 'put',
+        url: $(this).attr('action'),
+        data: $(this).serialize(),
+        success: (response) => {    
+            $('#modal-add-stock').modal('hide');
+            table.ajax.reload();
+        },
+        error: (errors) => {
+            alert('Tidak dapat menambah stock');
+            console.log(errors); // Untuk debugging
+        }
+    });
+});
+function reduceStockForm(url, produkId) {
+    $('#modal-reduce-stock').modal('show'); // Tampilkan modal
+    $('#modal-reduce-stock form').attr('action', url); // Set action ke URL yang diberikan
+    $('#modal-reduce-stock [name=jumlah]').val(''); // Reset input jumlah
+    $('#modal-reduce-stock #produk_id').val(produkId); // Isi produk_id
 }
+
+$('#modal-reduce-stock form').on('submit', function (e) {
+    e.preventDefault();
+    $.ajax({
+        type: 'put', // Ubah ke PUT jika menggunakan RESTful
+        url: $(this).attr('action'), // Ambil action dari form
+        data: $(this).serialize(), // Ambil data dari form
+        success: (response) => {
+            $('#modal-reduce-stock').modal('hide'); // Sembunyikan modal
+            table.ajax.reload(); // Reload tabel untuk menampilkan stok terbaru
+            alert('Stok berhasil dikurangi'); // Tampilkan pesan sukses
+        },
+        error: (errors) => {
+            alert('Tidak dapat mengurangi stok');
+            console.log(errors); // Untuk debugging
+        }
+    });
+});
+
 
 </script>
 @endpush

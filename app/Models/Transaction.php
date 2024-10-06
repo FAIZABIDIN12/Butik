@@ -4,9 +4,12 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-
+use Carbon\Carbon;
 class Transaction extends Model
 {
+    const CATEGORY_STOCK_ADD = '022'; // Kode kategori untuk menambah stok
+    const CATEGORY_STOCK_REDUCE = '023'; // Kode kategori untuk mengurangi stok
+
     use HasFactory;
 
     protected $fillable = [
@@ -36,18 +39,67 @@ class Transaction extends Model
     {
         return $this->hasMany(LedgerEntry::class);
     }
-     // Determine if the transaction is a debit or credit
-     public function type()
-     {
-         return $this->hasOne(Category::class, 'code', 'category_code');
-     }
-     public static function calculateSaldo()
-     {
-         // Assuming 'nominal' is positive for incoming and negative for outgoing
-         return self::sum('nominal');
-     }
-     public function produk()
-     {
-         return $this->belongsTo(Produk::class, 'id_produk');
-     }
+
+    public function type()
+    {
+        return $this->hasOne(Category::class, 'code', 'category_code');
+    }
+
+    public static function calculateSaldo()
+    {
+        // Menghitung saldo keseluruhan dari semua transaksi
+        return self::sum('nominal');
+    }
+
+    // Tambah stok dan buat transaksi
+    public static function storeStockTransaction($categoryCode, $jumlah, $harga_per_unit, $description)
+    {
+        // Hitung total nominal berdasarkan jumlah stok dan harga per unit
+        $nominal = $jumlah * $harga_per_unit;
+
+        return self::create([
+            'transaction_at' => now(),
+            'description' => $description,
+            'category_code' => $categoryCode,
+            'nominal' => $nominal,
+            'user_id' => auth()->id(),
+        ]);
+    }
+    public static function updateMonthlyBalance(Account $account, $amount, $type)
+{
+    $currentMonth = Carbon::now()->format('Y-m');
+
+    $monthlyBalance = MonthlyBalance::firstOrNew(
+        ['account_code' => $account->code, 'month' => $currentMonth],
+        ['balance' => 0]
+    );
+
+    switch ($account->position) {
+        case 'asset':
+        case 'expense':
+            if ($type === 'debit') {
+                $account->current_balance += $amount;
+                $monthlyBalance->balance += $amount;
+            } else {
+                $account->current_balance -= $amount;
+                $monthlyBalance->balance -= $amount;
+            }
+            break;
+
+        case 'liability':
+        case 'revenue':
+            if ($type === 'debit') {
+                $account->current_balance -= $amount;
+                $monthlyBalance->balance -= $amount;
+            } else {
+                $account->current_balance += $amount;
+                $monthlyBalance->balance += $amount;
+            }
+            break;
+    }
+
+    $account->save();
+    $monthlyBalance->save();
+}
+
 }

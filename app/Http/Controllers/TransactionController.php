@@ -153,6 +153,8 @@ foreach ($transactions as $transaction) {
         // Update saldo akun laba rugi
         $profitLossMonthlyBalance->balance += $profitChange;
         $profitLossMonthlyBalance->save();
+
+        
     
         return redirect()->route('transaction.index')->with('success', 'Transaction added successfully.');
     }
