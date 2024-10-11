@@ -14,15 +14,24 @@
     <div class="col-lg-12">
         <div class="box">
             <div class="box-header with-border">
-                <button onclick="addForm('{{ route('kategori.store') }}')" class="btn btn-success btn-xs btn-flat"><i class="fa fa-plus-circle"></i> Tambah</button>
+                <button onclick="addForm('{{ route('kategori.store') }}')" 
+                class="btn btn-primary btn-lg btn-flat">
+                <i class="fa fa-plus-circle"></i> Tambah Kategori
+                </button>
+
             </div>
             <div class="box-body table-responsive">
-                <table class="table table-stiped table-bordered">
+                <table class="table table-striped table-bordered">
                     <thead>
-                        <th width="5%">No</th>
-                        <th>Kategori</th>
-                        <th width="15%"><i class="fa fa-cog"></i></th>
+                        <tr>
+                            <th width="5%">No</th>
+                            <th>Kategori</th>
+                            <th width="15%">Aksi</th>
+                        </tr>
                     </thead>
+                    <tbody>
+                        <!-- Data akan diisi oleh DataTables -->
+                    </tbody>
                 </table>
             </div>
         </div>
@@ -95,7 +104,7 @@
     }
 
     function deleteData(url) {
-        if (confirm('Yakin ingin menghapus data terpilih?')) {
+        if (confirm('Yakin ingin menghapus kategori ini?')) {
             $.post(url, {
                     '_token': $('[name=csrf-token]').attr('content'),
                     '_method': 'delete'

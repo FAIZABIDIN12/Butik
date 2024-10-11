@@ -14,24 +14,29 @@
     <div class="col-lg-12">
         <div class="box">
             <div class="box-header with-border">
-                <button onclick="addForm('{{ route('member.store') }}')" class="btn btn-success btn-xs btn-flat"><i class="fa fa-plus-circle"></i> Tambah</button>
-                <button onclick="cetakMember('{{ route('member.cetak_member') }}')" class="btn btn-info btn-xs btn-flat"><i class="fa fa-id-card"></i> Cetak Member</button>
+                <button onclick="addForm('{{ route('member.store') }}')" class="btn btn-primary btn-lg btn-flat"><i class="fa fa-plus-circle"></i> Tambah Member</button>
+                <button onclick="cetakMember('{{ route('member.cetak_member') }}')" class="btn btn-info btn-lg btn-flat"><i class="fa fa-id-card"></i> Cetak Member</button>
             </div>
             <div class="box-body table-responsive">
                 <form action="" method="post" class="form-member">
                     @csrf
-                    <table class="table table-stiped table-bordered">
+                    <table class="table table-striped table-bordered">
                         <thead>
-                            <th width="5%">
-                                <input type="checkbox" name="select_all" id="select_all">
-                            </th>
-                            <th width="5%">No</th>
-                            <th>Kode</th>
-                            <th>Nama</th>
-                            <th>Telepon</th>
-                            <th>Alamat</th>
-                            <th width="15%"><i class="fa fa-cog"></i></th>
+                            <tr>
+                                <th width="5%">
+                                    <input type="checkbox" name="select_all" id="select_all">
+                                </th>
+                                <th width="5%">No</th>
+                                <th>Kode</th>
+                                <th>Nama</th>
+                                <th>Telepon</th>
+                                <th>Alamat</th>
+                                <th width="15%"><i class="fa fa-cog"></i></th>
+                            </tr>
                         </thead>
+                        <tbody>
+                            <!-- Data akan diisi melalui DataTable -->
+                        </tbody>
                     </table>
                 </form>
             </div>

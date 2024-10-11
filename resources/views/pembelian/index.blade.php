@@ -13,12 +13,17 @@
 <div class="row">
     <div class="col-lg-12">
         <div class="box">
-            <div class="box-header with-border">
-                <button onclick="addForm()" class="btn btn-success btn-xs btn-flat"><i class="fa fa-plus-circle"></i> Transaksi Baru</button>
-                @empty(! session('id_pembelian'))
-                <a href="{{ route('pembelian_detail.index') }}" class="btn btn-info btn-xs btn-flat"><i class="fa fa-pencil"></i> Transaksi Aktif</a>
-                @endempty
-            </div>
+        <div class="box-header with-border">
+    <button onclick="addForm()" class="btn btn-primary btn-lg btn-flat" style="margin-right: 5px;">
+        <i class="fa fa-plus-circle"></i> Transaksi Baru
+    </button>
+    <!-- @empty(!session('id_pembelian'))
+        <a href="{{ route('pembelian_detail.index') }}" class="btn btn-info btn-lg btn-flat">
+            <i class="fa fa-pencil"></i> Transaksi Aktif
+        </a>
+    @endempty -->
+</div>
+
             <div class="box-body table-responsive">
                 <table class="table table-stiped table-bordered table-pembelian">
                     <thead>

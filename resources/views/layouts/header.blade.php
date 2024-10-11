@@ -1,4 +1,4 @@
-<header class="main-header">
+<header class="main-header"  style="background-color: #00BFFF;">
     <!-- Logo -->
     <a href="index2.html" class="logo">
         <!-- mini logo for sidebar mini 50x50 pixels -->
@@ -14,7 +14,7 @@
         <span class="logo-lg"><b>{{ $setting->nama_perusahaan }}</b></span>
     </a>
     <!-- Header Navbar: style can be found in header.less -->
-    <nav class="navbar navbar-static-top">
+    <nav class="navbar navbar-static-top bg-info">
         <!-- Sidebar toggle button-->
         <a href="#" class="sidebar-toggle" data-toggle="push-menu" role="button">
             <span class="sr-only">Toggle navigation</span>

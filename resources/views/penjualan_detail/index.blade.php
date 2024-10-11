@@ -52,7 +52,7 @@
                                 <input type="hidden" name="id_produk" id="id_produk">
                                 <input type="text" class="form-control" name="kode_produk" id="kode_produk">
                                 <span class="input-group-btn">
-                                    <button onclick="tampilProduk()" class="btn btn-info btn-flat" type="button"><i class="fa fa-arrow-right"></i></button>
+                                    <button onclick="tampilProduk()" class="btn btn-primary btn-flat" type="button"><i class="fa fa-arrow-right"></i></button>
                                 </span>
                             </div>
                         </div>
@@ -98,7 +98,7 @@
                                     <div class="input-group">
                                         <input type="text" class="form-control" id="kode_member" value="{{ $memberSelected->kode_member }}">
                                         <span class="input-group-btn">
-                                            <button onclick="tampilMember()" class="btn btn-info btn-flat" type="button"><i class="fa fa-arrow-right"></i></button>
+                                            <button onclick="tampilMember()" class="btn btn-primary btn-flat" type="button"><i class="fa fa-arrow-right"></i></button>
                                         </span>
                                     </div>
                                 </div>
@@ -107,8 +107,7 @@
                                 <label for="diskon" class="col-lg-2 control-label">Diskon</label>
                                 <div class="col-lg-8">
                                     <input type="number" name="diskon" id="diskon" class="form-control" 
-                                        value="{{ ! empty($memberSelected->id_member) ? $diskon : 0 }}" 
-                                        readonly>
+                                        value="{{ ! empty($memberSelected->id_member) ? $diskon : 0 }}" >
                                 </div>
                             </div>
                             <div class="form-group row">
@@ -135,8 +134,12 @@
             </div>
 
             <div class="box-footer">
-                <button type="submit" class="btn btn-primary btn-sm btn-flat pull-right btn-simpan"><i class="fa fa-floppy-o"></i> Simpan Transaksi</button>
-            </div>
+    <button type="submit" 
+            class="btn btn-success btn-lg btn-flat pull-right btn-simpan">
+        <i class="fa fa-floppy-o"></i> Simpan Transaksi
+    </button>
+</div>
+
         </div>
     </div>
 </div>

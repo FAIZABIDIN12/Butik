@@ -6,12 +6,14 @@
 <div class="row">
     <div class="col-lg-12">
         <div class="box">
-            <div class="box-header">
-                <h3 class="box-title"></h3>
-                <button type="button" class="btn btn-primary float-right" data-toggle="modal" data-target="#addCategoryModal">
-                    Tambah Kategori
-                </button>
-            </div>
+        <div class="box-header">
+    <div class="d-flex justify-content-end">
+        <button type="button" class="btn btn-primary btn-lg btn-flat" data-toggle="modal" data-target="#addCategoryModal">
+            <i class="fa fa-plus-circle"></i> Tambah Kategori
+        </button>
+    </div>
+</div>
+
             <div class="box-body">
                 <table class="table table-bordered">
                     <thead>

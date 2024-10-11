@@ -14,18 +14,26 @@
     <div class="col-lg-12">
         <div class="box">
             <div class="box-header with-border">
-                <button onclick="addForm('{{ route('supplier.store') }}')" class="btn btn-success btn-xs btn-flat"><i class="fa fa-plus-circle"></i> Tambah</button>
+                <button onclick="addForm('{{ route('supplier.store') }}')" class="btn btn-primary btn-lg btn-flat"><i class="fa fa-plus-circle"></i> Tambah Supplier</button>
             </div>
             <div class="box-body table-responsive">
-                <table class="table table-stiped table-bordered">
-                    <thead>
-                        <th width="5%">No</th>
-                        <th>Nama</th>
-                        <th>Telepon</th>
-                        <th>Alamat</th>
-                        <th width="15%"><i class="fa fa-cog"></i></th>
-                    </thead>
-                </table>
+                <form action="" method="post" class="form-supplier">
+                    @csrf
+                    <table class="table table-striped table-bordered">
+                        <thead>
+                            <tr>
+                                <th width="5%">No</th>
+                                <th>Nama</th>
+                                <th>Telepon</th>
+                                <th>Alamat</th>
+                                <th width="15%"><i class="fa fa-cog"></i></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <!-- Data akan diisi melalui DataTable -->
+                        </tbody>
+                    </table>
+                </form>
             </div>
         </div>
     </div>
@@ -55,7 +63,7 @@
         });
 
         $('#modal-form').validator().on('submit', function (e) {
-            if (! e.preventDefault()) {
+            if (!e.preventDefault()) {
                 $.post($('#modal-form form').attr('action'), $('#modal-form form').serialize())
                     .done((response) => {
                         $('#modal-form').modal('hide');
