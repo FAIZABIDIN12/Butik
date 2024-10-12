@@ -34,6 +34,15 @@ class CategorySeeder extends Seeder
                 'updated_at' => now(),
             ],
             [
+                'code' => '003',
+                'type' => 'in',
+                'name' => 'Penambahan Modal Barang Dagang',
+                'debit_account_code' => '201', 
+                'credit_account_code' => '103', 
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
+            [
                 'code' => '011',
                 'type' => 'out',
                 'name' => 'Pembelian Barang Dagang',

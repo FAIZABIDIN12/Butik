@@ -7,6 +7,8 @@ use Illuminate\Http\Request;
 use App\Models\Produk;
 use App\Models\Transaction;
 use App\Models\Account;
+use App\Imports\ProdukImport;
+use Maatwebsite\Excel\Facades\Excel;
 use PDF;
 
 class ProdukController extends Controller
@@ -50,6 +52,9 @@ class ProdukController extends Controller
             ->addColumn('stok', function ($produk) {
                 return format_uang($produk->stok);
             })
+            ->addColumn('rak', function ($produk) {
+                return $produk->rak; // Assuming rak is a string
+            })
             ->addColumn('aksi', function ($produk) {
                 return '
                 <div class="btn-group">
@@ -84,13 +89,33 @@ class ProdukController extends Controller
      */
     public function store(Request $request)
     {
-        $produk = Produk::latest()->first() ?? new Produk();
-        $request['kode_produk'] = 'P'. tambah_nol_didepan((int)$produk->id_produk +1, 6);
-
-        $produk = Produk::create($request->all());
-
+        $request->validate([
+            'nama_produk' => 'required|string|max:255',
+            'id_kategori' => 'required|exists:kategori,id_kategori',
+            'merk' => 'nullable|string|max:255',
+            'harga_beli' => 'required|numeric',
+            'harga_jual' => 'required|numeric',
+            'diskon' => 'nullable|numeric',
+            'stok' => 'required|numeric',
+            'rak' => 'nullable|string|max:255',
+        ]);
+    
+        // Generate the new kode_produk
+        $lastProduct = Produk::orderBy('id_produk', 'desc')->first();
+        $nextId = $lastProduct ? (int)$lastProduct->id_produk + 1 : 1; // Start from 1 if no products exist
+        $newKodeProduk = 'P' . str_pad($nextId, 6, '0', STR_PAD_LEFT); // Format it as P000001, P000002, etc.
+    
+        // Check if kode_produk already exists
+        if (Produk::where('kode_produk', $newKodeProduk)->exists()) {
+            return response()->json(['message' => 'Kode produk sudah ada.'], 400);
+        }
+    
+        // Create the product
+        $produk = Produk::create(array_merge($request->all(), ['kode_produk' => $newKodeProduk]));
+    
         return response()->json('Data berhasil disimpan', 200);
     }
+    
 
     /**
      * Display the specified resource.
@@ -168,10 +193,9 @@ class ProdukController extends Controller
         $pdf->setPaper('a4', 'potrait');
         return $pdf->stream('produk.pdf');
     }
-   
+
     public function addStock(Request $request, $id)
     {
-        \Log::info('Request data: ', $request->all());
     
         $product = Produk::findOrFail($id);
         $jumlahStok = $request->input('jumlah');
@@ -183,7 +207,6 @@ class ProdukController extends Controller
         $product->stok += $jumlahStok;
     
         if (!$product->save()) {
-            \Log::error('Gagal menambah stok untuk produk ID: ' . $product->id_produk);
             return response()->json(['message' => 'Gagal menambah stok.'], 500);
         }
     
@@ -205,11 +228,6 @@ class ProdukController extends Controller
             return response()->json(['message' => 'Akun debet, kredit, atau laba rugi tidak ditemukan.'], 400);
         }
     
-        // Log akun untuk debugging
-        \Log::info('Debet Account:', ['account' => $debetAccount]);
-        \Log::info('Credit Account:', ['account' => $creditAccount]);
-        \Log::info('Profit/Loss (Revenue) Account:', ['account' => $profitLossAccount]);
-    
         // Update saldo bulanan dan akun menggunakan metode dari model Transaction
         $amount = $jumlahStok * $product->harga_jual;
         
@@ -227,7 +245,6 @@ class ProdukController extends Controller
     
     public function reduceStock(Request $request, $id)
 {
-    \Log::info('Request data: ', $request->all());
 
     $product = Produk::findOrFail($id);
     $jumlahStok = $request->input('jumlah');
@@ -244,7 +261,6 @@ class ProdukController extends Controller
     $product->stok -= $jumlahStok;
 
     if (!$product->save()) {
-        \Log::error('Gagal mengurangi stok untuk produk ID: ' . $product->id_produk);
         return response()->json(['message' => 'Gagal mengurangi stok.'], 500);
     }
 
@@ -266,11 +282,6 @@ class ProdukController extends Controller
         return response()->json(['message' => 'Akun debet, kredit, atau laba rugi tidak ditemukan.'], 400);
     }
 
-    // Log akun untuk debugging
-    \Log::info('Debet Account:', ['account' => $debetAccount]);
-    \Log::info('Credit Account:', ['account' => $creditAccount]);
-    \Log::info('Profit/Loss (Revenue) Account:', ['account' => $profitLossAccount]);
-
     // Update saldo bulanan dan akun menggunakan metode dari model Transaction
     $amount = $jumlahStok * $product->harga_jual;
     
@@ -285,7 +296,17 @@ class ProdukController extends Controller
         'product' => $product
     ]);
 }
+ public function import(Request $request)
+    {
+        $request->validate([
+            'file' => 'required|mimes:xlsx,xls',
+        ]);
 
+        // Mengimpor data dari file Excel
+        Excel::import(new ProdukImport, $request->file('file'));
+
+        return redirect()->route('produk.index')->with('success', 'Produk berhasil diimpor!');
+    }
 }
 
 

@@ -65,6 +65,13 @@
                             <span class="help-block with-errors"></span>
                         </div>
                     </div>
+                    <div class="form-group row">
+                        <label for="rak" class="col-lg-2 col-lg-offset-1 control-label">Rak</label>
+                        <div class="col-lg-6">
+                            <input type="text" name="rak" id="rak" class="form-control">
+                            <span class="help-block with-errors"></span>
+                        </div>
+                    </div>
                 </div>
                 <div class="modal-footer">
                     <button class="btn btn-sm btn-flat btn-primary"><i class="fa fa-save"></i> Simpan</button>

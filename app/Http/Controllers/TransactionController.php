@@ -67,97 +67,127 @@ foreach ($transactions as $transaction) {
     }
 
     public function store(Request $request)
-    {
-        // Validasi input
-        $request->validate([
-            'description' => 'required|string|max:255',
-            'category_code' => 'required|exists:categories,code',
-            'nominal' => 'required|numeric',
-        ]);
-    
-        // Mengambil kategori transaksi
-        $category = Category::where('code', $request->category_code)->first();
-    
-        if (!$category) {
-            return redirect()->back()->withErrors(['category_code' => 'Invalid category code.']);
-        }
-    
-        // Mengambil akun debit dan kredit berdasarkan kategori transaksi
-        $debetAccount = Account::where('code', $category->debit_account_code)->first();
-        $creditAccount = Account::where('code', $category->credit_account_code)->first();
-    
-        // Memformat nominal transaksi ke integer
-        $nominal = str_replace('.', '', $request->nominal);
-    
-        // Menyimpan transaksi baru
-        $transaction = Transaction::create([
-            'transaction_at' => now(),
-            'description' => $request->description,
-            'category_code' => $request->category_code,
-            'nominal' => $nominal,
-            'user_id' => Auth::id(),
-        ]);
-    
-        // Proses akun debit
-        if ($debetAccount) {
-            $this->updateMonthlyBalance($debetAccount, $nominal, 'debit');
+{
+    // Validasi input
+    $request->validate([
+        'description' => 'required|string|max:255',
+        'category_code' => 'required|exists:categories,code',
+        'nominal' => 'required|numeric',
+    ]);
+
+    // Mengambil kategori transaksi
+    $category = Category::where('code', $request->category_code)->first();
+
+    if (!$category) {
+        return redirect()->back()->withErrors(['category_code' => 'Invalid category code.']);
+    }
+
+    // Mengambil akun debit dan kredit berdasarkan kategori transaksi
+    $debetAccount = Account::where('code', $category->debit_account_code)->first();
+    $creditAccount = Account::where('code', $category->credit_account_code)->first();
+
+    // Memformat nominal transaksi ke integer
+    $nominal = str_replace('.', '', $request->nominal);
+
+    // Menyimpan transaksi baru
+    $transaction = Transaction::create([
+        'transaction_at' => now(),
+        'description' => $request->description,
+        'category_code' => $request->category_code,
+        'nominal' => $nominal,
+        'user_id' => Auth::id(),
+    ]);
+
+    // **Tambahan: Penanganan khusus untuk kode transaksi 003**
+    if ($request->category_code === '003') {
+        // Jika kategori transaksi adalah 003, tambahkan saldo untuk akun 103 dan 201
+        $specialDebetAccount = Account::where('code', '103')->first();
+        $specialCreditAccount = Account::where('code', '201')->first();
+
+        // Proses akun debit 103
+        if ($specialDebetAccount) {
+            $this->updateMonthlyBalance($specialDebetAccount, $nominal, 'debit');
             LedgerEntry::create([
                 'transaction_id' => $transaction->id,
-                'account_code' => $debetAccount->code,
+                'account_code' => $specialDebetAccount->code,
                 'entry_date' => now(),
                 'entry_type' => 'debit',
                 'amount' => $nominal,
-                'balance' => $debetAccount->current_balance,
+                'balance' => $specialDebetAccount->current_balance,
             ]);
         }
-    
-        // Proses akun kredit
-        if ($creditAccount) {
-            $this->updateMonthlyBalance($creditAccount, $nominal, 'credit');
+
+        // Proses akun kredit 201
+        if ($specialCreditAccount) {
+            $this->updateMonthlyBalance($specialCreditAccount, $nominal, 'credit');
             LedgerEntry::create([
                 'transaction_id' => $transaction->id,
-                'account_code' => $creditAccount->code,
+                'account_code' => $specialCreditAccount->code,
                 'entry_date' => now(),
                 'entry_type' => 'credit',
                 'amount' => $nominal,
-                'balance' => $creditAccount->current_balance,
+                'balance' => $specialCreditAccount->current_balance,
             ]);
         }
-    
-        // **Tambahan: Update saldo akun laba rugi (203)**
-    
-        // Ambil atau buat saldo bulanan untuk akun laba rugi (203)
-        $currentMonth = Carbon::now()->format('Y-m');
-        $profitLossAccountCode = '203'; // Kode akun laba rugi
-    
-        // Cari atau buat entri saldo bulanan untuk akun laba rugi
-        $profitLossMonthlyBalance = MonthlyBalance::firstOrNew(
-            [
-                'account_code' => $profitLossAccountCode,
-                'month' => $currentMonth,
-            ],
-            [
-                'balance' => 0, // Default balance jika belum ada
-            ]
-        );
-    
-        // Hitung perubahan saldo laba rugi berdasarkan posisi akun
-        $profitChange = 0;
-        if ($debetAccount && $debetAccount->position === 'expense') {
-            $profitChange -= $nominal; // Biaya mengurangi laba
-        }
-        if ($creditAccount && $creditAccount->position === 'revenue') {
-            $profitChange += $nominal; // Pendapatan menambah laba
-        }
-    
-        // Update saldo akun laba rugi
-        $profitLossMonthlyBalance->balance += $profitChange;
-        $profitLossMonthlyBalance->save();
-
-        
-    
-        return redirect()->route('transaction.index')->with('success', 'Transaction added successfully.');
     }
+
+    // Proses akun debit
+    if ($debetAccount) {
+        $this->updateMonthlyBalance($debetAccount, $nominal, 'debit');
+        LedgerEntry::create([
+            'transaction_id' => $transaction->id,
+            'account_code' => $debetAccount->code,
+            'entry_date' => now(),
+            'entry_type' => 'debit',
+            'amount' => $nominal,
+            'balance' => $debetAccount->current_balance,
+        ]);
+    }
+
+    // Proses akun kredit
+    if ($creditAccount) {
+        $this->updateMonthlyBalance($creditAccount, $nominal, 'credit');
+        LedgerEntry::create([
+            'transaction_id' => $transaction->id,
+            'account_code' => $creditAccount->code,
+            'entry_date' => now(),
+            'entry_type' => 'credit',
+            'amount' => $nominal,
+            'balance' => $creditAccount->current_balance,
+        ]);
+    }
+
+    // Tambahan: Update saldo akun laba rugi (203)
+    $currentMonth = Carbon::now()->format('Y-m');
+    $profitLossAccountCode = '203'; // Kode akun laba rugi
+
+    // Cari atau buat entri saldo bulanan untuk akun laba rugi
+    $profitLossMonthlyBalance = MonthlyBalance::firstOrNew(
+        [
+            'account_code' => $profitLossAccountCode,
+            'month' => $currentMonth,
+        ],
+        [
+            'balance' => 0, // Default balance jika belum ada
+        ]
+    );
+
+    // Hitung perubahan saldo laba rugi berdasarkan posisi akun
+    $profitChange = 0;
+    if ($debetAccount && $debetAccount->position === 'expense') {
+        $profitChange -= $nominal; // Biaya mengurangi laba
+    }
+    if ($creditAccount && $creditAccount->position === 'revenue') {
+        $profitChange += $nominal; // Pendapatan menambah laba
+    }
+
+    // Update saldo akun laba rugi
+    $profitLossMonthlyBalance->balance += $profitChange;
+    $profitLossMonthlyBalance->save();
+
+    return redirect()->route('transaction.index')->with('success', 'Transaction added successfully.');
+}
+
     
     
 

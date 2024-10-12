@@ -9,6 +9,7 @@ class Transaction extends Model
 {
     const CATEGORY_STOCK_ADD = '022'; // Kode kategori untuk menambah stok
     const CATEGORY_STOCK_REDUCE = '023'; // Kode kategori untuk mengurangi stok
+    const CATEGORY_MODAL_ADD = '003';
 
     use HasFactory;
 

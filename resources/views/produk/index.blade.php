@@ -30,6 +30,11 @@
             style="background-color: #17a2b8; border-color: #17a2b8; color: white;">
         <i class="fa fa-barcode"></i> Cetak Barcode
     </button>
+    <button onclick="showImportModal()" 
+            class="btn btn-warning btn-lg btn-flat" 
+            style="background-color: #ffc107; border-color: #ffc107; color: white; margin-left: 10px;">
+        <i class="fa fa-upload"></i> Import
+    </button>
 </div>
 
             </div>
@@ -50,6 +55,7 @@
                             <th>Harga Jual</th>
                             <th>Diskon</th>
                             <th>Stok</th>
+                            <th>Rak</th>
                             <th width="15%"><i class="fa fa-cog"></i></th>
                         </thead>
                     </table>
@@ -58,6 +64,32 @@
         </div>
     </div>
 </div>
+<div class="modal fade" id="importModal" tabindex="-1" role="dialog" aria-labelledby="importModalLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="importModalLabel">Import Produk</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <form id="importForm" action="{{ route('produk.import') }}" method="POST" enctype="multipart/form-data">
+                @csrf
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label for="file">Pilih file Excel untuk diimpor:</label>
+                        <input type="file" name="file" class="form-control" required>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Tutup</button>
+                    <button type="submit" class="btn btn-primary">Import</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
 @includeIf('produk.reduce_stock_modal')
 @includeIf('produk.add_stock_modal')
 @includeIf('produk.form')
@@ -85,6 +117,7 @@
                 {data: 'harga_jual'},
                 {data: 'diskon'},
                 {data: 'stok'},
+                {data: 'rak'},
                 {data: 'aksi', searchable: false, sortable: false},
             ]
         });
@@ -136,6 +169,7 @@
                 $('#modal-form [name=harga_jual]').val(response.harga_jual);
                 $('#modal-form [name=diskon]').val(response.diskon);
                 $('#modal-form [name=stok]').val(response.stok);
+                $('#modal-form [name=rak]').val(response.rak);
             })
             .fail((errors) => {
                 alert('Tidak dapat menampilkan data');
@@ -240,5 +274,8 @@
             }
         });
     });
+    function showImportModal() {
+    $('#importModal').modal('show');
+}
 </script>
 @endpush

@@ -38,12 +38,9 @@
                         </button>
                     </div>
                 </div>
-
-                <!-- Add margin below the button group to create space between the buttons and the table -->
                 <div style="margin-top: 20px;"></div>
-
-                <table class="table table-striped table-bordered" id="transactions-table">
-                    <thead>
+                <table class="table table-striped table-bordered table-hover" id="transactions-table">
+                    <thead class="thead-light">
                         <tr>
                             <th>Tanggal</th>
                             <th>Kode</th>
@@ -66,15 +63,15 @@
                                 <td>{{ number_format($transaction->credit, 2) }}</td>
                                 <td>{{ number_format($transaction->saldo, 2) }}</td>
                                 <td>
-                                    <button class="btn btn-warning edit" data-id="{{ $transaction->id }}">Edit</button>
-                                    <button class="btn btn-danger delete" data-id="{{ $transaction->id }}">Hapus</button>
+                                    <button class="btn btn-warning btn-sm edit" data-id="{{ $transaction->id }}">Edit</button>
+                                    <button class="btn btn-danger btn-sm delete" data-id="{{ $transaction->id }}">Hapus</button>
                                 </td>
                             </tr>
                         @endforeach
                     </tbody>
                 </table>
-                <div>
-                    <h3>Total Saldo: {{ number_format($saldo, 2) }}</h3>
+                <div class="mt-3">
+                    <h3>Total Saldo: <span class="text-success">{{ number_format($saldo, 2) }}</span></h3>
                 </div>
 
                 <!-- Modal Tambah Transaksi -->
@@ -221,7 +218,7 @@ $(document).ready(function() {
                     location.reload(); // Reload the page to see the changes
                 },
                 error: function() {
-                    alert('Error deleting transaction.'); // Display a generic error message
+                    alert('Error deleting transaction.');
                 }
             });
         }

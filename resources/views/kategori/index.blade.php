@@ -13,13 +13,17 @@
 <div class="row">
     <div class="col-lg-12">
         <div class="box">
-            <div class="box-header with-border">
-                <button onclick="addForm('{{ route('kategori.store') }}')" 
-                class="btn btn-primary btn-lg btn-flat">
-                <i class="fa fa-plus-circle"></i> Tambah Kategori
-                </button>
+        <div class="box-header with-border">
+    <button onclick="addForm('{{ route('kategori.store') }}')" class="btn btn-primary btn-lg btn-flat">
+        <i class="fa fa-plus-circle"></i> Tambah Kategori
+    </button>
 
-            </div>
+    <!-- Tombol untuk Membuka Modal Import Excel -->
+    <!-- <button type="button" class="btn btn-success btn-lg btn-flat" data-toggle="modal" data-target="#modal-import">
+        <i class="fa fa-file-excel-o"></i> Import Kategori
+    </button> -->
+</div>
+
             <div class="box-body table-responsive">
                 <table class="table table-striped table-bordered">
                     <thead>
@@ -34,6 +38,32 @@
                     </tbody>
                 </table>
             </div>
+        </div>
+    </div>
+</div>
+<!-- Modal untuk Import Excel -->
+<div class="modal fade" id="modal-import" tabindex="-1" role="dialog" aria-labelledby="modalImportLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="modalImportLabel">Import Kategori</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <form action="{{ route('kategori.import') }}" method="POST" enctype="multipart/form-data">
+                @csrf
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label for="file">Pilih File Excel</label>
+                        <input type="file" name="file" class="form-control" required>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Tutup</button>
+                    <button type="submit" class="btn btn-success">Import</button>
+                </div>
+            </form>
         </div>
     </div>
 </div>

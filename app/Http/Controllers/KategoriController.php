@@ -4,6 +4,8 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\Kategori;
+use App\Imports\KategoriImport;
+use Maatwebsite\Excel\Facades\Excel;
 
 class KategoriController extends Controller
 {
@@ -114,4 +116,37 @@ class KategoriController extends Controller
 
         return response(null, 204);
     }
+
+    public function import(Request $request)
+{
+    // Validasi file excel
+    $this->validate($request, [
+        'file' => 'required|mimes:xlsx,xls'
+    ]);
+
+    // Ambil file yang diunggah
+    $file = $request->file('file');
+    $importData = \Excel::toArray([], $file);
+
+    // Proses setiap baris data di Excel
+    foreach ($importData[0] as $row) {
+        // Asumsi kolom 'nama_kategori' ada di indeks ke-0
+        $namaKategori = isset($row[0]) ? $row[0] : null;
+
+        if ($namaKategori) {
+            // Cek apakah nama_kategori sudah ada di database
+            $kategoriExists = Kategori::where('nama_kategori', $namaKategori)->exists();
+
+            if (!$kategoriExists) {
+                // Insert data baru jika tidak ada
+                Kategori::create([
+                    'nama_kategori' => $namaKategori
+                ]);
+            }
+        }
+    }
+
+    return redirect()->back()->with('success', 'Data berhasil diimport.');
+}
+
 }
