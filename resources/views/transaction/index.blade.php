@@ -18,58 +18,60 @@
                     <div class="col-md-8">
                         <form id="filter-form" method="GET" action="{{ route('transaction.index') }}">
                             <div class="row">
-                                <div class="col-md-4">
-                                    <input type="date" name="start_date" id="start_date" class="form-control" value="{{ $startDateFormatted }}">
+                                <div class="col-md-4 mb-3">
+                                    <input type="date" name="start_date" id="start_date" class="form-control form-control-lg" value="{{ $startDateFormatted }}" style="height: 50px;">
                                 </div>
-                                <div class="col-md-4">
-                                    <input type="date" name="end_date" id="end_date" class="form-control" value="{{ $endDateFormatted }}">
+                                <div class="col-md-4 mb-3">
+                                    <input type="date" name="end_date" id="end_date" class="form-control form-control-lg" value="{{ $endDateFormatted }}" style="height: 50px;">
                                 </div>
                                 <div class="col-md-4 d-flex align-items-end">
-                                    <button type="submit" class="btn btn-primary">Tampilkan</button>
+                                    <button type="submit" class="btn btn-primary btn-lg btn-flat" style="margin-right: 10px;">
+                                        <i class="fa fa-filter"></i> Tampilkan
+                                    </button>
                                 </div>
                             </div>
                         </form>
                     </div>
                     <div class="col-md-4 text-md-end">
-                        <button class="btn btn-success mb-3" data-toggle="modal" data-target="#addTransactionModal">Tambah Transaksi</button>
+                        <button class="btn btn-success btn-lg btn-flat" data-toggle="modal" data-target="#addTransactionModal" style="margin-left: auto; margin-right: 0;">
+                            <i class="fa fa-plus-circle"></i> Tambah Transaksi
+                        </button>
                     </div>
                 </div>
-
-                <div class="box-body table-responsive">
-                    <table class="table table-striped table-bordered" id="transactions-table">
-                        <thead>
+                <div style="margin-top: 20px;"></div>
+                <table class="table table-striped table-bordered table-hover" id="transactions-table">
+                    <thead class="thead-light">
+                        <tr>
+                            <th>Tanggal</th>
+                            <th>Kode</th>
+                            <th>Deskripsi</th>
+                            <th>Kategori</th>
+                            <th>Debit</th>
+                            <th>Kredit</th>
+                            <th>Saldo</th>
+                            <th>Aksi</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach ($transactions as $transaction)
                             <tr>
-                                <th>Date</th>
-                                <th>Code</th>
-                                <th>Deskripsi</th>
-                                <th>Kategori</th>
-                                <th>Debit</th>
-                                <th>Kredit</th>
-                                <th>Saldo</th>
-                                <th>Aksi</th>
+                                <td>{{ $transaction->transaction_at }}</td>
+                                <td>{{ $transaction->category ? $transaction->category->code : 'N/A' }}</td>
+                                <td>{{ $transaction->description }}</td>
+                                <td>{{ $transaction->category ? $transaction->category->name : 'N/A' }}</td>
+                                <td>{{ number_format($transaction->debit, 2) }}</td>
+                                <td>{{ number_format($transaction->credit, 2) }}</td>
+                                <td>{{ number_format($transaction->saldo, 2) }}</td>
+                                <td>
+                                    <button class="btn btn-warning btn-sm edit" data-id="{{ $transaction->id }}">Edit</button>
+                                    <button class="btn btn-danger btn-sm delete" data-id="{{ $transaction->id }}">Hapus</button>
+                                </td>
                             </tr>
-                        </thead>
-                        <tbody>
-                            @foreach ($transactions as $transaction)
-                                <tr>
-                                    <td>{{ $transaction->transaction_at }}</td>
-                                    <td>{{ $transaction->category ? $transaction->category->code : 'N/A' }}</td>
-                                    <td>{{ $transaction->description }}</td>
-                                    <td>{{ $transaction->category ? $transaction->category->name : 'N/A' }}</td>
-                                    <td>{{ number_format($transaction->debit, 2) }}</td>
-                                    <td>{{ number_format($transaction->credit, 2) }}</td>
-                                    <td>{{ number_format($transaction->saldo, 2) }}</td>
-                                    <td>
-                                        <button class="btn btn-warning edit" data-id="{{ $transaction->id }}">Edit</button>
-                                        <!-- <button class="btn btn-danger delete" data-id="{{ $transaction->id }}">Delete</button> -->
-                                    </td>
-                                </tr>
-                            @endforeach
-                        </tbody>
-                    </table>
-                </div>
-                <div>
-                    <h3>Total Saldo: {{ number_format($saldo, 2) }}</h3>
+                        @endforeach
+                    </tbody>
+                </table>
+                <div class="mt-3">
+                    <h3>Total Saldo: <span class="text-success">{{ number_format($saldo, 2) }}</span></h3>
                 </div>
 
                 <!-- Modal Tambah Transaksi -->
@@ -169,65 +171,58 @@ $(document).ready(function() {
 
     // Handle edit button click
     $('.edit').on('click', function() {
-    var transactionId = $(this).data('id');
-    console.log(`/transaction/${transactionId}/edit`); // Log the URL
+        var transactionId = $(this).data('id');
 
-    // Fetch transaction data
-    $.ajax({
-        url: `/transaction/${transactionId}/edit`,
-        method: 'GET',
-        success: function(data) {
-            $('#transaction_id').val(data.transaction.id);
-            $('#edit_description').val(data.transaction.description);
-            $('#edit_category_code').val(data.transaction.category_code);
-            $('#edit_nominal').val(data.transaction.nominal);
-            $('#editTransactionModal').modal('show');
-        },
-        error: function() {
-            alert('Error fetching transaction data.');
-        }
-    });
-});
-
-$('#editTransactionForm').on('submit', function(e) {
-    e.preventDefault();
-    var transactionId = $('#transaction_id').val();
-    console.log($(this).serialize()); // Log the form data
-
-    $.ajax({
-        url: `/transaction/${transactionId}`,
-        method: 'PUT',
-        data: $(this).serialize(),
-        success: function() {
-            location.reload(); // Reload the page to see the changes
-        },
-        error: function(jqXHR) {
-            console.error(jqXHR.responseText); // Log the error response
-            alert('Error updating transaction.'); // Display a generic error message
-        }
-    });
-});
-
-  // Handle delete button click
-$('.delete').on('click', function() {
-    var transactionId = $(this).data('id');
-    if (confirm('Are you sure you want to delete this transaction?')) {
+        // Fetch transaction data
         $.ajax({
-            url: `/transaction/${transactionId}`, // Ensure the URL is correct
-            method: 'DELETE',
-            data: {
-                _token: '{{ csrf_token() }}' // Include CSRF token for security
+            url: `/transaction/${transactionId}/edit`,
+            method: 'GET',
+            success: function(data) {
+                $('#transaction_id').val(data.transaction.id);
+                $('#edit_description').val(data.transaction.description);
+                $('#edit_category_code').val(data.transaction.category_code);
+                $('#edit_nominal').val(data.transaction.nominal);
+                $('#editTransactionModal').modal('show');
             },
-            success: function(response) {
-                location.reload(); // Reload the page to see the changes
-            },
-            error: function(xhr, status, error) {
-                alert('Error deleting transaction: ' + xhr.responseText); // Provide more information
+            error: function() {
+                alert('Error fetching transaction data.');
             }
         });
-    }
-});
+    });
 
+    $('#editTransactionForm').on('submit', function(e) {
+        e.preventDefault();
+        var transactionId = $('#transaction_id').val();
+
+        $.ajax({
+            url: `/transaction/${transactionId}`,
+            method: 'PUT',
+            data: $(this).serialize(),
+            success: function() {
+                location.reload(); // Reload the page to see the changes
+            },
+            error: function(jqXHR) {
+                alert('Error updating transaction.'); // Display a generic error message
+            }
+        });
+    });
+
+    // Handle delete button click
+    $('.delete').on('click', function() {
+        var transactionId = $(this).data('id');
+        if (confirm('Apakah Anda yakin ingin menghapus transaksi ini?')) {
+            $.ajax({
+                url: `/transaction/${transactionId}`,
+                method: 'DELETE',
+                success: function() {
+                    location.reload(); // Reload the page to see the changes
+                },
+                error: function() {
+                    alert('Error deleting transaction.');
+                }
+            });
+        }
+    });
 });
 </script>
 @endpush

@@ -41,6 +41,7 @@ Route::group(['middleware' => 'auth'], function () {
 
     Route::group(['middleware' => 'level:1'], function () {
         Route::get('/kategori/data', [KategoriController::class, 'data'])->name('kategori.data');
+        Route::post('/kategori/import', [KategoriController::class, 'import'])->name('kategori.import');
         Route::resource('/kategori', KategoriController::class);
 
         Route::get('/produk/data', [ProdukController::class, 'data'])->name('produk.data');
@@ -48,6 +49,7 @@ Route::group(['middleware' => 'auth'], function () {
         Route::post('/produk/cetak-barcode', [ProdukController::class, 'cetakBarcode'])->name('produk.cetak_barcode');
         Route::put('produk/add_stock/{id}', [ProdukController::class, 'addStock'])->name('produk.add_stock');
         Route::put('/produk/{id}/reduce-stock', [ProdukController::class, 'reduceStock'])->name('produk.reduce_stock');
+        Route::post('/produk/import', [ProdukController::class, 'import'])->name('produk.import');
 
         Route::resource('/produk', ProdukController::class);
 

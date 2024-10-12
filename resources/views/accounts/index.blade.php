@@ -13,23 +13,21 @@
 <div class="row">
     <div class="col-lg-12">
         <div class="box">
-            <div class="box-header">
-                <h3 class="box-title"></h3>
-                <!-- Tombol Tambah Data -->
-                <button type="button" class="btn btn-primary float-right" data-toggle="modal" data-target="#addAccountModal">
-                    Create New Account
+            <div class="box-header with-border">
+                <button type="button" class="btn btn-primary btn-lg btn-flat" data-toggle="modal" data-target="#addAccountModal">
+                    <i class="fa fa-plus-circle"></i> Akun Baru
                 </button>
             </div>
             <div class="box-body table-responsive">
-                <table class="table table-striped table-bordered table-accounts">
+                <table class="table table-striped table-bordered"  id="table-accounts">
                     <thead>
                         <tr>
                             <th width="5%">No</th>
-                            <th>Code</th>
-                            <th>Name</th>
-                            <th>Position</th>
-                            <th>Initial Balance</th>
-                            <th>Current Balance</th>
+                            <th>Kode</th>
+                            <th>Nama</th>
+                            <th>Posisi</th>
+                            <th>Saldo Awal</th>
+                            <th>Saldo Saat Ini</th>
                             <th width="15%"><i class="fa fa-cog"></i></th>
                         </tr>
                     </thead>
@@ -50,7 +48,6 @@
                                     Beban Biaya
                                 @endif
                             </td>
-
                             <td>{{ $account->initial_balance }}</td>
                             <td>{{ $account->current_balance }}</td>
                             <td>
@@ -66,7 +63,7 @@
                                 <button class="btn btn-danger btn-sm" data-toggle="modal" 
                                         data-target="#deleteAccountModal" 
                                         data-code="{{ $account->code }}">
-                                    Delete
+                                    Hapus
                                 </button>
                             </td>
                         </tr>
@@ -77,6 +74,8 @@
         </div>
     </div>
 </div>
+
+@includeIf('accounts.detail') <!-- Pastikan view detail ada -->
 <!-- Modal Tambah Akun -->
 <div class="modal fade" id="addAccountModal" tabindex="-1" role="dialog" aria-labelledby="addAccountModalLabel" aria-hidden="true">
     <div class="modal-dialog" role="document">
@@ -103,8 +102,8 @@
                         <select class="form-control" id="position" name="position" required>
                             <option value="asset">Aktiva</option>
                             <option value="liability">Pasiva</option>
-                            <option value="revenue">Laba Rugi </option>
-                            <option value="expense">Beban Biaya </option>
+                            <option value="revenue">Laba Rugi</option>
+                            <option value="expense">Beban Biaya</option>
                         </select>
                     </div>
                     <div class="form-group">
@@ -124,6 +123,7 @@
         </div>
     </div>
 </div>
+
 <!-- Modal Edit Akun -->
 <div class="modal fade" id="editAccountModal" tabindex="-1" role="dialog" aria-labelledby="editAccountModalLabel" aria-hidden="true">
     <div class="modal-dialog" role="document">
@@ -146,13 +146,15 @@
                         <label for="edit_name">Nama</label>
                         <input type="text" class="form-control" id="edit_name" name="name" required>
                     </div>
-                    <select class="form-control" id="edit_position" name="position" required>
-                    <option value="asset" {{ old('position') == 'asset' ? 'selected' : '' }}>Aktiva</option>
-                        <option value="liability" {{ old('position') == 'liability' ? 'selected' : '' }}>Pasiva</option>
-                        <option value="revenue" {{ old('position') == 'revenue' ? 'selected' : '' }}>Laba Rugi</option>
-                        <option value="expense" {{ old('position') == 'expense' ? 'selected' : '' }}>Beban Biaya</option>
-                    </select>
-
+                    <div class="form-group">
+                        <label for="edit_position">Posisi</label>
+                        <select class="form-control" id="edit_position" name="position" required>
+                            <option value="asset">Aktiva</option>
+                            <option value="liability">Pasiva</option>
+                            <option value="revenue">Laba Rugi</option>
+                            <option value="expense">Beban Biaya</option>
+                        </select>
+                    </div>
                     <div class="form-group">
                         <label for="edit_initial_balance">Saldo Awal</label>
                         <input type="number" class="form-control" id="edit_initial_balance" name="initial_balance" required>
@@ -170,6 +172,7 @@
         </div>
     </div>
 </div>
+
 <!-- Modal Hapus Akun -->
 <div class="modal fade" id="deleteAccountModal" tabindex="-1" role="dialog" aria-labelledby="deleteAccountModalLabel" aria-hidden="true">
     <div class="modal-dialog" role="document">
@@ -196,41 +199,40 @@
     </div>
 </div>
 
-@includeIf('accounts.detail') <!-- Pastikan view detail ada -->
 @endsection
 
-@push('scripts')
-@push('scripts')
+@section('scripts')
 <script>
-    $(function () {
-        // Untuk mengatur data pada modal edit
-        $('#editAccountModal').on('show.bs.modal', function (event) {
-            var button = $(event.relatedTarget);
-            var code = button.data('code');
-            var name = button.data('name');
-            var position = button.data('position');
-            var initial_balance = button.data('initial_balance');
-            var current_balance = button.data('current_balance');
+$(document).ready(function() {
+    // Initialize DataTable
+    $('.table-accounts').DataTable();
 
-            var modal = $(this);
-            modal.find('#edit_code').val(code);
-            modal.find('#edit_name').val(name);
-            modal.find('#edit_position').val(position);
-            modal.find('#edit_initial_balance').val(initial_balance);
-            modal.find('#edit_current_balance').val(current_balance);
-            modal.find('#editAccountForm').attr('action', '/accounts/' + code);
-        });
+    // Handle edit button click
+    $('#editAccountModal').on('show.bs.modal', function(event) {
+        var button = $(event.relatedTarget); // Button that triggered the modal
+        var code = button.data('code');
+        var name = button.data('name');
+        var position = button.data('position');
+        var initial_balance = button.data('initial_balance');
+        var current_balance = button.data('current_balance');
 
-        // Untuk mengatur modal hapus
-        $('#deleteAccountModal').on('show.bs.modal', function (event) {
-            var button = $(event.relatedTarget);
-            var code = button.data('code');
-            var modal = $(this);
-            modal.find('#delete_code').val(code);
-            modal.find('#deleteAccountForm').attr('action', '/accounts/' + code);
-        });
+        var modal = $(this);
+        modal.find('#edit_code').val(code);
+        modal.find('#edit_name').val(name);
+        modal.find('#edit_position').val(position);
+        modal.find('#edit_initial_balance').val(initial_balance);
+        modal.find('#edit_current_balance').val(current_balance);
+        $('#editAccountForm').attr('action', '{{ url('accounts') }}/' + code);
     });
+
+    // Handle delete button click
+    $('#deleteAccountModal').on('show.bs.modal', function(event) {
+        var button = $(event.relatedTarget);
+        var code = button.data('code');
+        var modal = $(this);
+        modal.find('#delete_code').val(code);
+        $('#deleteAccountForm').attr('action', '{{ url('accounts') }}/' + code);
+    });
+});
 </script>
-
-
-@endpush
+@endsection
