@@ -137,7 +137,7 @@ foreach ($transactions as $transaction) {
         LedgerEntry::create([
             'transaction_id' => $transaction->id,
             'account_code' => $debetAccount->code,
-            'entry_date' => now(),
+            'entry_date' => now(),  
             'entry_type' => 'debit',
             'amount' => $nominal,
             'balance' => $debetAccount->current_balance,

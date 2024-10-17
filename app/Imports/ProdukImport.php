@@ -5,7 +5,7 @@ namespace App\Imports;
 use App\Models\Produk;
 use App\Models\Kategori;
 use App\Models\Transaction;
-use App\Models\Account; // Ensure to include Account model
+use App\Models\Account; 
 use Maatwebsite\Excel\Concerns\ToModel;
 use Maatwebsite\Excel\Concerns\WithHeadingRow;
 
@@ -84,14 +84,14 @@ class ProdukImport implements ToModel, WithHeadingRow
             'harga_jual' => $harga_jual,
             'diskon' => $diskon,
             'stok' => $stok,
-            'rak' => $rak, // Add this line to set rak for the new product
+            'rak' => $rak, 
         ]);
     
         // Create a transaction for the modal addition
         Transaction::storeStockTransaction(
             Transaction::CATEGORY_MODAL_ADD,
             $stok, // Amount
-            $harga_jual, // Price per unit
+            $harga_beli, // Price per unit
             'Penambahan modal untuk produk: ' . $row['nama_produk']
         );
     
