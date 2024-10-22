@@ -20,31 +20,37 @@ class ProdukImport implements ToModel, WithHeadingRow
             ['created_at' => now(), 'updated_at' => now()]
         );
     
-        // Validasi stok
-        $stok = isset($row['stok']) && is_numeric($row['stok']) ? (int) $row['stok'] : 0;
-    
-        // Ambil kode produk terakhir dari database, urutkan berdasarkan kode_produk
-        $lastProduct = Produk::orderBy('kode_produk', 'desc')->first();
-        $nextId = $lastProduct ? (int) substr($lastProduct->kode_produk, 1) + 1 : 1;
-        $kode_produk = 'P' . str_pad($nextId, 6, '0', STR_PAD_LEFT);
-    
-        // Cek apakah produk sudah ada di database berdasarkan nama_produk
-        $existingProduct = Produk::where('nama_produk', $row['nama_produk'])->first();
-    
-        // Validasi harga_beli
-        $harga_beli = isset($row['harga_beli']) && !empty($row['harga_beli']) ? $row['harga_beli'] : 0;
-    
-        // Validasi harga_jual
-        $harga_jual = isset($row['harga_jual']) && !empty($row['harga_jual']) ? $row['harga_jual'] : 0;
-    
-        // Validasi diskon
-        $diskon = isset($row['diskon']) ? $row['diskon'] : 0;
-    
-        // Ambil nilai rak dari row data
-        $rak = isset($row['rak']) ? $row['rak'] : null;
-    
-        // Hitung total nilai produk
-        $totalValue = $stok * $harga_beli;
+       // Validasi stok
+$stok = isset($row['stok']) && is_numeric($row['stok']) ? (int) $row['stok'] : 0;
+
+// Ambil kode produk terakhir dari database, urutkan berdasarkan kode_produk
+$lastProduct = Produk::orderBy('kode_produk', 'desc')->first();
+$nextId = $lastProduct ? (int) substr($lastProduct->kode_produk, 1) + 1 : 1;
+$kode_produk = 'P' . str_pad($nextId, 6, '0', STR_PAD_LEFT);
+
+// Cek apakah produk sudah ada di database berdasarkan nama_produk
+$existingProduct = Produk::where('nama_produk', $row['nama_produk'])->first();
+
+// Validasi harga_beli
+$harga_beli = isset($row['harga_beli']) && !empty($row['harga_beli']) 
+    ? floatval(str_replace('.', '', $row['harga_beli'])) // Menghapus titik jika ada
+    : 0.0;
+
+// Validasi harga_jual
+$harga_jual = isset($row['harga_jual']) && !empty($row['harga_jual']) 
+    ? floatval(str_replace('.', '', $row['harga_jual'])) // Menghapus titik jika ada
+    : 0.0;
+
+// Validasi diskon
+$diskon = isset($row['diskon']) && is_numeric($row['diskon']) 
+    ? floatval($row['diskon']) // Mengonversi diskon menjadi float
+    : 0.0;
+
+// Ambil nilai rak dari row data
+$rak = isset($row['rak']) ? $row['rak'] : null;
+
+// Hitung total nilai produk
+$totalValue = $stok * $harga_beli;
     
         // Jika produk sudah ada, update data produk
         if ($existingProduct) {
