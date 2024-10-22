@@ -5,6 +5,7 @@ namespace App\Imports;
 use App\Models\Produk;
 use App\Models\Kategori;
 use App\Models\Transaction;
+use App\Models\LedgerEntry;
 use App\Models\Account; 
 use Maatwebsite\Excel\Concerns\ToModel;
 use Maatwebsite\Excel\Concerns\WithHeadingRow;
@@ -30,7 +31,7 @@ class ProdukImport implements ToModel, WithHeadingRow
         // Cek apakah produk sudah ada di database berdasarkan nama_produk
         $existingProduct = Produk::where('nama_produk', $row['nama_produk'])->first();
     
-        // Validasi harga_beli, jika kosong berikan nilai default 0
+        // Validasi harga_beli
         $harga_beli = isset($row['harga_beli']) && !empty($row['harga_beli']) ? $row['harga_beli'] : 0;
     
         // Validasi harga_jual
@@ -40,12 +41,12 @@ class ProdukImport implements ToModel, WithHeadingRow
         $diskon = isset($row['diskon']) ? $row['diskon'] : 0;
     
         // Ambil nilai rak dari row data
-        $rak = isset($row['rak']) ? $row['rak'] : null; // Add this line
+        $rak = isset($row['rak']) ? $row['rak'] : null;
     
-        // Hitung total nilai produk yang akan dicatat dalam transaksi
-        $totalValue = $stok * $harga_jual;
+        // Hitung total nilai produk
+        $totalValue = $stok * $harga_beli;
     
-        // Jika produk sudah ada, update data dengan nilai dari Excel
+        // Jika produk sudah ada, update data produk
         if ($existingProduct) {
             $existingProduct->update([
                 'stok' => $stok,
@@ -53,28 +54,51 @@ class ProdukImport implements ToModel, WithHeadingRow
                 'harga_jual' => $harga_jual,
                 'diskon' => $diskon,
                 'id_kategori' => $kategori->id_kategori,
-                'rak' => $rak, // Add this line to update rak
+                'rak' => $rak,
             ]);
     
-            // Create a transaction for the modal addition
-            Transaction::storeStockTransaction(
+            // Buat transaksi untuk penambahan modal
+            $transaction = Transaction::storeStockTransaction(
                 Transaction::CATEGORY_MODAL_ADD,
                 $stok, // Amount
-                $harga_jual, // Price per unit
+                $harga_beli, // Price per unit
                 'Penambahan modal untuk produk: ' . $row['nama_produk']
             );
     
-            // Update monthly balance for the modal and HPP accounts
+            // Update monthly balance dan buat ledger entry
             $debetAccount = Account::where('code', '103')->first(); // Modal account
             $creditAccount = Account::where('code', '201')->first(); // HPP account
     
-            Transaction::updateMonthlyBalance($debetAccount, $totalValue, 'debit');
-            Transaction::updateMonthlyBalance($creditAccount, $totalValue, 'credit');
+            // Update monthly balance dan ledger entry untuk debit
+            if ($debetAccount) {
+                Transaction::updateMonthlyBalance($debetAccount, $totalValue, 'debit');
+                LedgerEntry::create([
+                    'transaction_id' => $transaction->id,
+                    'account_code' => $debetAccount->code,
+                    'entry_date' => now(),
+                    'entry_type' => 'debit',
+                    'amount' => $totalValue,
+                    'balance' => $debetAccount->current_balance,
+                ]);
+            }
     
-            return null; // Tidak perlu mengembalikan model baru
+            // Update monthly balance dan ledger entry untuk kredit
+            if ($creditAccount) {
+                Transaction::updateMonthlyBalance($creditAccount, $totalValue, 'credit');
+                LedgerEntry::create([
+                    'transaction_id' => $transaction->id,
+                    'account_code' => $creditAccount->code,
+                    'entry_date' => now(),
+                    'entry_type' => 'credit',
+                    'amount' => $totalValue,
+                    'balance' => $creditAccount->current_balance,
+                ]);
+            }
+    
+            return null; // Tidak perlu mengembalikan model baru jika produk sudah ada
         }
     
-        // Kembalikan model baru jika produk tidak ada
+        // Jika produk belum ada, buat model produk baru
         $newProduct = new Produk([
             'kode_produk' => $kode_produk,
             'nama_produk' => $row['nama_produk'],
@@ -84,25 +108,49 @@ class ProdukImport implements ToModel, WithHeadingRow
             'harga_jual' => $harga_jual,
             'diskon' => $diskon,
             'stok' => $stok,
-            'rak' => $rak, 
+            'rak' => $rak,
         ]);
     
-        // Create a transaction for the modal addition
-        Transaction::storeStockTransaction(
+        // Buat transaksi untuk penambahan modal
+        $transaction = Transaction::storeStockTransaction(
             Transaction::CATEGORY_MODAL_ADD,
             $stok, // Amount
             $harga_beli, // Price per unit
             'Penambahan modal untuk produk: ' . $row['nama_produk']
         );
     
-        // Update monthly balance for the modal and HPP accounts
+        // Update monthly balance dan ledger entry
         $debetAccount = Account::where('code', '103')->first(); // Modal account
         $creditAccount = Account::where('code', '201')->first(); // HPP account
     
-        Transaction::updateMonthlyBalance($debetAccount, $totalValue, 'debit');
-        Transaction::updateMonthlyBalance($creditAccount, $totalValue, 'credit');
+        // Update monthly balance dan ledger entry untuk debit
+        if ($debetAccount) {
+            Transaction::updateMonthlyBalance($debetAccount, $totalValue, 'debit');
+            LedgerEntry::create([
+                'transaction_id' => $transaction->id,
+                'account_code' => $debetAccount->code,
+                'entry_date' => now(),
+                'entry_type' => 'debit',
+                'amount' => $totalValue,
+                'balance' => $debetAccount->current_balance,
+            ]);
+        }
+    
+        // Update monthly balance dan ledger entry untuk kredit
+        if ($creditAccount) {
+            Transaction::updateMonthlyBalance($creditAccount, $totalValue, 'credit');
+            LedgerEntry::create([
+                'transaction_id' => $transaction->id,
+                'account_code' => $creditAccount->code,
+                'entry_date' => now(),
+                'entry_type' => 'credit',
+                'amount' => $totalValue,
+                'balance' => $creditAccount->current_balance,
+            ]);
+        }
     
         return $newProduct; // Return the new product model
     }
+    
     
 }
