@@ -58,7 +58,7 @@
                             <th>Debit</th>
                             <th>Kredit</th>
                             <th>Saldo</th>
-                            <th>Aksi</th>
+                            <th width="15%"><i class="fa fa-cog"></i></th>
                         </tr>
                     </thead>
                     <tbody>
@@ -71,9 +71,13 @@
                                 <td>{{ number_format($transaction->debit, 2) }}</td>
                                 <td>{{ number_format($transaction->credit, 2) }}</td>
                                 <td>{{ number_format($transaction->saldo, 2) }}</td>
-                                <td>
-                                    <button class="btn btn-warning btn-sm edit" data-id="{{ $transaction->id }}">Edit</button>
-                                    <button class="btn btn-danger btn-sm delete" data-id="{{ $transaction->id }}">Hapus</button>
+                                <td >
+                                    <button class="btn btn-warning btn-sm edit" data-id="{{ $transaction->id }}">
+                                        <i class="fa fa-edit"></i>
+                                    </button>
+                                    <button class="btn btn-danger btn-sm delete" data-id="{{ $transaction->id }}">
+                                        <i class="fa fa-trash"></i>
+                                    </button>
                                 </td>
                             </tr>
                         @endforeach
