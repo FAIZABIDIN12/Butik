@@ -7,8 +7,10 @@ use App\Models\Category;
 use App\Models\Account;
 use App\Models\MonthlyBalance;
 use App\Models\LedgerEntry;
+use App\Imports\TransactionImport;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Maatwebsite\Excel\Facades\Excel;
 use Carbon\Carbon;
 
 class TransactionController extends Controller
@@ -311,4 +313,25 @@ foreach ($transactions as $transaction) {
     }
     
     
+    public function import(Request $request)
+    {
+        // Validate that the file is present and is an Excel file
+        $request->validate([
+            'file' => 'required|mimes:xlsx,xls'
+        ]);
+
+        // Try to import the file and handle any errors
+        try {
+            // Perform the import using the TransactionImport class
+            Excel::import(new TransactionImport, $request->file('file'));
+
+            // If successful, return a success message
+            return redirect()->back()->with('success', 'Transactions imported successfully!');
+        } catch (\Exception $e) {
+            // If there is any error, log the error and return an error message
+            \Log::error('Transaction Import Error: ' . $e->getMessage());
+
+            return redirect()->back()->with('error', 'There was an issue importing the transactions. Please try again.');
+        }
+    }
 }

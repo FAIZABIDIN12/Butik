@@ -14,30 +14,39 @@
     <div class="col-lg-12 mb-1">
         <div class="box">
             <div class="box-body table-responsive">
-                <div class="row align-items-center mb-4">
-                    <div class="col-md-8">
-                        <form id="filter-form" method="GET" action="{{ route('transaction.index') }}">
-                            <div class="row">
-                                <div class="col-md-4 mb-3">
-                                    <input type="date" name="start_date" id="start_date" class="form-control form-control-lg" value="{{ $startDateFormatted }}" style="height: 50px;">
-                                </div>
-                                <div class="col-md-4 mb-3">
-                                    <input type="date" name="end_date" id="end_date" class="form-control form-control-lg" value="{{ $endDateFormatted }}" style="height: 50px;">
-                                </div>
-                                <div class="col-md-4 d-flex align-items-end">
-                                    <button type="submit" class="btn btn-primary btn-lg btn-flat" style="margin-right: 10px;">
-                                        <i class="fa fa-filter"></i> Tampilkan
-                                    </button>
-                                </div>
-                            </div>
-                        </form>
-                    </div>
-                    <div class="col-md-4 text-md-end">
-                        <button class="btn btn-success btn-lg btn-flat" data-toggle="modal" data-target="#addTransactionModal" style="margin-left: auto; margin-right: 0;">
-                            <i class="fa fa-plus-circle"></i> Tambah Transaksi
-                        </button>
-                    </div>
+            <div class="row">
+    <div class="col-md-12 d-flex justify-content-between align-items-center">
+        <!-- Form Filter -->
+        <form id="filter-form" method="GET" action="{{ route('transaction.index') }}" class="d-flex flex-grow-1">
+            <div class="row w-100">
+                <!-- Start Date -->
+                <div class="col-md-3 mb-1">
+                    <input type="date" name="start_date" id="start_date" class="form-control form-control-lg" value="{{ $startDateFormatted }}" style="height: 50px;">
                 </div>
+                <!-- End Date -->
+                <div class="col-md-3 mb-1">
+                    <input type="date" name="end_date" id="end_date" class="form-control form-control-lg" value="{{ $endDateFormatted }}" style="height: 50px;">
+                </div>
+                <!-- Filter Button -->
+                <div class="col-md-6 d-flex gap-2">
+                    <button type="submit" class="btn btn-primary btn-lg w-100" style="height: 50px;">
+                        <i class="fa fa-filter"></i> Tampilkan
+                    </button>
+                    <button type="button" class="btn btn-success btn-lg" data-toggle="modal" data-target="#addTransactionModal" style="height: 50px;">
+                        <i class="fa fa-plus-circle"></i> Tambah Transaksi
+                    </button>
+                    <button type="button" class="btn btn-warning btn-lg" data-toggle="modal" data-target="#importTransactionModal" style="height: 50px;">
+                        <i class="fa fa-upload"></i> Import Transaksi
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+
+
+
                 <div style="margin-top: 20px;"></div>
                 <table class="table table-striped table-bordered table-hover" id="transactions-table">
                     <thead class="thead-light">
@@ -114,6 +123,32 @@
                         </div>
                     </div>
                 </div>
+<!-- Import Transaction Modal -->
+<div class="modal fade" id="importTransactionModal" tabindex="-1" role="dialog" aria-labelledby="importTransactionModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="importTransactionModalLabel">Import Transaksi</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form action="{{ route('transactions.import') }}" method="POST" enctype="multipart/form-data">
+                    @csrf
+                    <div class="form-group">
+                        <label for="file">Upload File Excel</label>
+                        <input type="file" name="file" class="form-control" required>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="submit" class="btn btn-primary">Import</button>
+                        <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
 
                 <!-- Modal Edit Transaksi -->
                 <div class="modal fade" id="editTransactionModal" tabindex="-1" role="dialog" aria-labelledby="editTransactionModalLabel" aria-hidden="true">

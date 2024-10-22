@@ -10,6 +10,8 @@ class Transaction extends Model
     const CATEGORY_STOCK_ADD = '022'; // Kode kategori untuk menambah stok
     const CATEGORY_STOCK_REDUCE = '023'; // Kode kategori untuk mengurangi stok
     const CATEGORY_MODAL_ADD = '003';
+    const CATEGORY_INCOME = '001';  // Kode kategori untuk Penjualan Barang (Income)
+const CATEGORY_MUTATION = '012'; // Kode kategori untuk Mutasi Kas Butik Ke FO
 
     use HasFactory;
 
@@ -67,40 +69,108 @@ class Transaction extends Model
         ]);
     }
     public static function updateMonthlyBalance(Account $account, $amount, $type)
-{
-    $currentMonth = Carbon::now()->format('Y-m');
-
-    $monthlyBalance = MonthlyBalance::firstOrNew(
-        ['account_code' => $account->code, 'month' => $currentMonth],
-        ['balance' => 0]
-    );
-
-    switch ($account->position) {
-        case 'asset':
-        case 'expense':
-            if ($type === 'debit') {
-                $account->current_balance += $amount;
-                $monthlyBalance->balance += $amount;
-            } else {
-                $account->current_balance -= $amount;
-                $monthlyBalance->balance -= $amount;
-            }
-            break;
-
-        case 'liability':
-        case 'revenue':
-            if ($type === 'debit') {
-                $account->current_balance -= $amount;
-                $monthlyBalance->balance -= $amount;
-            } else {
-                $account->current_balance += $amount;
-                $monthlyBalance->balance += $amount;
-            }
-            break;
+    {
+        if (!$account) {
+            throw new \Exception('Akun tidak ditemukan');
+        }
+    
+        $currentMonth = Carbon::now()->format('Y-m');
+    
+        $monthlyBalance = MonthlyBalance::firstOrNew(
+            ['account_code' => $account->code, 'month' => $currentMonth],
+            ['balance' => 0]
+        );
+    
+        switch ($account->position) {
+            case 'asset':
+            case 'expense':
+                if ($type === 'debit') {
+                    $account->current_balance += $amount;
+                    $monthlyBalance->balance += $amount;
+                } else {
+                    $account->current_balance -= $amount;
+                    $monthlyBalance->balance -= $amount;
+                }
+                break;
+    
+            case 'liability':
+            case 'revenue':
+                if ($type === 'debit') {
+                    $account->current_balance -= $amount;
+                    $monthlyBalance->balance -= $amount;
+                } else {
+                    $account->current_balance += $amount;
+                    $monthlyBalance->balance += $amount;
+                }
+                break;
+        }
+    
+        $account->save();
+        $monthlyBalance->save();
     }
-
-    $account->save();
-    $monthlyBalance->save();
-}
+    
+    public static function createSalesTransaction($amount, $description)
+    {
+        // Buat transaksi penjualan barang
+        $transaction = self::create([
+            'transaction_at' => now(),
+            'description' => $description,
+            'category_code' => self::CATEGORY_INCOME,
+            'nominal' => $amount,
+            'user_id' => auth()->id(),
+        ]);
+    
+        // Periksa apakah akun Kas Butik ada
+        $kasButik = Account::where('name', 'Kas Butik')->first();
+        if (!$kasButik) {
+            throw new \Exception('Akun Kas Butik tidak ditemukan');
+        }
+    
+        // Periksa apakah akun Pendapatan Butik ada
+        $pendapatanButik = Account::where('name', 'Pendapatan Butik')->first();
+        if (!$pendapatanButik) {
+            throw new \Exception('Akun Pendapatan Butik tidak ditemukan');
+        }
+    
+        // Perbarui saldo kas butik (debit)
+        self::updateMonthlyBalance($kasButik, $amount, 'debit');
+    
+        // Perbarui saldo pendapatan butik (kredit)
+        self::updateMonthlyBalance($pendapatanButik, $amount, 'credit');
+    
+        return $transaction;
+    }
+    
+    public static function createMutationTransaction($amount, $description)
+    {
+        // Buat transaksi mutasi kas butik ke FO
+        $transaction = self::create([
+            'transaction_at' => now(),
+            'description' => $description,
+            'category_code' => self::CATEGORY_MUTATION,
+            'nominal' => $amount,
+            'user_id' => auth()->id(),
+        ]);
+    
+        // Periksa apakah akun Kas Butik dan Kas FO ada
+        $kasButik = Account::where('name', 'Kas Butik')->first();
+        if (!$kasButik) {
+            throw new \Exception('Akun Kas Butik tidak ditemukan');
+        }
+    
+        $kasFO = Account::where('name', 'Kas FO')->first();
+        if (!$kasFO) {
+            throw new \Exception('Akun Kas FO tidak ditemukan');
+        }
+    
+        // Perbarui saldo kas butik (kredit)
+        self::updateMonthlyBalance($kasButik, $amount, 'credit');
+    
+        // Perbarui saldo kas FO (debit)
+        self::updateMonthlyBalance($kasFO, $amount, 'debit');
+    
+        return $transaction;
+    }
+    
 
 }
