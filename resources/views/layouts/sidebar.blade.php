@@ -80,11 +80,11 @@
                 </a>
             </li>
             @else
-            <li>
+            <!-- <li>
                 <a href="{{ route('transaksi.index') }}">
                     <i class="fa fa-cart-arrow-down blue-icon"></i> <span class="menu-text">Transaksi Aktif</span>
                 </a>
-            </li>
+            </li> -->
             <li>
                 <a href="{{ route('transaksi.baru') }}">
                     <i class="fa fa-cart-arrow-down blue-icon"></i> <span class="menu-text">Transaksi Baru</span>
