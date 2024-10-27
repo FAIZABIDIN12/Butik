@@ -87,7 +87,7 @@
             </li> -->
             <li>
                 <a href="{{ route('transaksi.baru') }}">
-                    <i class="fa fa-cart-arrow-down blue-icon"></i> <span class="menu-text">Transaksi Baru</span>
+                    <i class="fa fa-cart-arrow-down blue-icon"></i> <span class="menu-text">Penjualan</span>
                 </a>
             </li>
             @endif
