@@ -6,53 +6,48 @@ use App\Models\Produk;
 use App\Models\Kategori;
 use App\Models\Transaction;
 use App\Models\LedgerEntry;
-use App\Models\Account; 
+use App\Models\Account;
 use Maatwebsite\Excel\Concerns\ToModel;
 use Maatwebsite\Excel\Concerns\WithHeadingRow;
+
 
 class ProdukImport implements ToModel, WithHeadingRow
 {
     public function model(array $row)
     {
-        // Cek apakah kategori sudah ada berdasarkan nama
+        // Pastikan kolom kategori tidak kosong dan valid
+        if (empty($row['kategori'])) {
+            // Log atau lewati baris ini jika 'kategori' kosong
+            \Log::warning('Baris dilewati karena kategori kosong', $row);
+            return null;
+        }
+
+        // Validasi dan buat kategori jika belum ada
         $kategori = Kategori::firstOrCreate(
             ['nama_kategori' => $row['kategori']],
             ['created_at' => now(), 'updated_at' => now()]
         );
-    
-       // Validasi stok
-$stok = isset($row['stok']) && is_numeric($row['stok']) ? (int) $row['stok'] : 0;
 
-// Ambil kode produk terakhir dari database, urutkan berdasarkan kode_produk
-$lastProduct = Produk::orderBy('kode_produk', 'desc')->first();
-$nextId = $lastProduct ? (int) substr($lastProduct->kode_produk, 1) + 1 : 1;
-$kode_produk = 'P' . str_pad($nextId, 6, '0', STR_PAD_LEFT);
+        // Validasi stok
+        $stok = isset($row['stok']) && is_numeric($row['stok']) ? (int) $row['stok'] : 0;
 
-// Cek apakah produk sudah ada di database berdasarkan nama_produk
-$existingProduct = Produk::where('nama_produk', $row['nama_produk'])->first();
+        // Generate kode_produk
+        $lastProduct = Produk::orderBy('kode_produk', 'desc')->first();
+        $nextId = $lastProduct ? (int) substr($lastProduct->kode_produk, 1) + 1 : 1;
+        $kode_produk = 'P' . str_pad($nextId, 6, '0', STR_PAD_LEFT);
 
-// Validasi harga_beli
-$harga_beli = isset($row['harga_beli']) && !empty($row['harga_beli']) 
-    ? floatval(str_replace('.', '', $row['harga_beli'])) // Menghapus titik jika ada
-    : 0.0;
+        // Cek apakah produk sudah ada
+        $existingProduct = Produk::where('nama_produk', $row['nama_produk'])->first();
 
-// Validasi harga_jual
-$harga_jual = isset($row['harga_jual']) && !empty($row['harga_jual']) 
-    ? floatval(str_replace('.', '', $row['harga_jual'])) // Menghapus titik jika ada
-    : 0.0;
+        // Parsing harga dan diskon
+        $harga_beli = isset($row['harga_beli']) ? floatval(str_replace('.', '', $row['harga_beli'])) : 0.0;
+        $harga_jual = isset($row['harga_jual']) ? floatval(str_replace('.', '', $row['harga_jual'])) : 0.0;
+        $diskon = isset($row['diskon']) ? floatval($row['diskon']) : 0.0;
 
-// Validasi diskon
-$diskon = isset($row['diskon']) && is_numeric($row['diskon']) 
-    ? floatval($row['diskon']) // Mengonversi diskon menjadi float
-    : 0.0;
+        // Hitung total nilai untuk stok
+        $totalValue = $stok * $harga_beli;
 
-// Ambil nilai rak dari row data
-$rak = isset($row['rak']) ? $row['rak'] : null;
-
-// Hitung total nilai produk
-$totalValue = $stok * $harga_beli;
-    
-        // Jika produk sudah ada, update data produk
+        // Update produk yang sudah ada atau buat produk baru
         if ($existingProduct) {
             $existingProduct->update([
                 'stok' => $stok,
@@ -60,76 +55,46 @@ $totalValue = $stok * $harga_beli;
                 'harga_jual' => $harga_jual,
                 'diskon' => $diskon,
                 'id_kategori' => $kategori->id_kategori,
-                'rak' => $rak,
+                'rak' => $row['rak'] ?? null,
             ]);
-    
-            // Buat transaksi untuk penambahan modal
-            $transaction = Transaction::storeStockTransaction(
-                Transaction::CATEGORY_MODAL_ADD,
-                $stok, // Amount
-                $harga_beli, // Price per unit
-                'Penambahan modal untuk produk: ' . $row['nama_produk']
-            );
-    
-            // Update monthly balance dan buat ledger entry
-            $debetAccount = Account::where('code', '103')->first(); // Modal account
-            $creditAccount = Account::where('code', '201')->first(); // HPP account
-    
-            // Update monthly balance dan ledger entry untuk debit
-            if ($debetAccount) {
-                Transaction::updateMonthlyBalance($debetAccount, $totalValue, 'debit');
-                LedgerEntry::create([
-                    'transaction_id' => $transaction->id,
-                    'account_code' => $debetAccount->code,
-                    'entry_date' => now(),
-                    'entry_type' => 'debit',
-                    'amount' => $totalValue,
-                    'balance' => $debetAccount->current_balance,
-                ]);
-            }
-    
-            // Update monthly balance dan ledger entry untuk kredit
-            if ($creditAccount) {
-                Transaction::updateMonthlyBalance($creditAccount, $totalValue, 'credit');
-                LedgerEntry::create([
-                    'transaction_id' => $transaction->id,
-                    'account_code' => $creditAccount->code,
-                    'entry_date' => now(),
-                    'entry_type' => 'credit',
-                    'amount' => $totalValue,
-                    'balance' => $creditAccount->current_balance,
-                ]);
-            }
-    
-            return null; // Tidak perlu mengembalikan model baru jika produk sudah ada
+
+            // Proses transaksi
+            $this->createTransaction($existingProduct, $stok, $harga_beli, $totalValue);
+            return null;
         }
-    
-        // Jika produk belum ada, buat model produk baru
+
+        // Buat produk baru jika belum ada
         $newProduct = new Produk([
             'kode_produk' => $kode_produk,
             'nama_produk' => $row['nama_produk'],
             'id_kategori' => $kategori->id_kategori,
-            'merk' => array_key_exists('merk', $row) ? $row['merk'] : null,
+            'merk' => $row['merk'] ?? null,
             'harga_beli' => $harga_beli,
             'harga_jual' => $harga_jual,
             'diskon' => $diskon,
             'stok' => $stok,
-            'rak' => $rak,
+            'rak' => $row['rak'] ?? null,
         ]);
-    
-        // Buat transaksi untuk penambahan modal
+
+        // Proses transaksi
+        $this->createTransaction($newProduct, $stok, $harga_beli, $totalValue);
+        return $newProduct;
+    }
+
+    private function createTransaction($product, $stok, $harga_beli, $totalValue)
+    {
+        // Buat transaksi dan entri buku besar
         $transaction = Transaction::storeStockTransaction(
             Transaction::CATEGORY_MODAL_ADD,
-            $stok, // Amount
-            $harga_beli, // Price per unit
-            'Penambahan modal untuk produk: ' . $row['nama_produk']
+            $stok,
+            $harga_beli,
+            'Penambahan modal untuk produk: ' . $product->nama_produk
         );
-    
-        // Update monthly balance dan ledger entry
-        $debetAccount = Account::where('code', '103')->first(); // Modal account
-        $creditAccount = Account::where('code', '201')->first(); // HPP account
-    
-        // Update monthly balance dan ledger entry untuk debit
+
+        // Entri buku besar
+        $debetAccount = Account::where('code', '103')->first();
+        $creditAccount = Account::where('code', '201')->first();
+
         if ($debetAccount) {
             Transaction::updateMonthlyBalance($debetAccount, $totalValue, 'debit');
             LedgerEntry::create([
@@ -141,8 +106,7 @@ $totalValue = $stok * $harga_beli;
                 'balance' => $debetAccount->current_balance,
             ]);
         }
-    
-        // Update monthly balance dan ledger entry untuk kredit
+
         if ($creditAccount) {
             Transaction::updateMonthlyBalance($creditAccount, $totalValue, 'credit');
             LedgerEntry::create([
@@ -154,9 +118,5 @@ $totalValue = $stok * $harga_beli;
                 'balance' => $creditAccount->current_balance,
             ]);
         }
-    
-        return $newProduct; // Return the new product model
     }
-    
-    
 }
