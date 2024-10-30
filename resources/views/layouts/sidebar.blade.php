@@ -65,6 +65,7 @@
                     <li><a href="{{ route('transaction.index') }}"> <span>Cashflow</span></a></li>
                     <li><a href="{{ route('report.profit_loss') }}"> <span>Laba Rugi</span></a></li>
                     <li><a href="{{ route('report.balance_sheet') }}"> <span>Neraca</span></a></li>
+                    <li><a href="{{ route('report.penjualan') }}"> <span>Report Penjualan</span></a></li>
                 </ul>
             </li>
 
@@ -88,6 +89,11 @@
             <li>
                 <a href="{{ route('transaksi.baru') }}">
                     <i class="fa fa-cart-arrow-down blue-icon"></i> <span class="menu-text">Penjualan</span>
+                </a>
+            </li>
+            <li>
+                <a href="{{ route('penjualan.index') }}">
+                    <i class="fa fa-history blue-icon"></i> <span class="menu-text">History Penjualan</span>
                 </a>
             </li>
             @endif

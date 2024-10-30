@@ -18,6 +18,7 @@ use App\Http\Controllers\{
     CategoryController,
     TransactionController,
     ReportController,
+    PaymentController,
 };
 use Illuminate\Support\Facades\Route;
 
@@ -39,7 +40,7 @@ Route::get('/', function () {
 Route::group(['middleware' => 'auth'], function () {
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
 
-    Route::group(['middleware' => 'level:1'], function () {
+    Route::group(['middleware' => 'level:1,2'], function () {
         Route::get('/kategori/data', [KategoriController::class, 'data'])->name('kategori.data');
         Route::post('/kategori/import', [KategoriController::class, 'import'])->name('kategori.import');
         Route::resource('/kategori', KategoriController::class);
@@ -104,7 +105,7 @@ Route::group(['middleware' => 'auth'], function () {
         Route::get('/setting/first', [SettingController::class, 'show'])->name('setting.show');
         Route::post('/setting', [SettingController::class, 'update'])->name('setting.update');
     });
-    Route::group(['middleware' => 'level:1,2'], function () {
+    Route::group(['middleware' => 'level:1'], function () {
         Route::get('/accounts', [AccountController::class, 'index'])->name('accounts.index');
         Route::get('/accounts/create', [AccountController::class, 'create'])->name('accounts.create');
         Route::post('/accounts', [AccountController::class, 'store'])->name('accounts.store');
@@ -113,7 +114,7 @@ Route::group(['middleware' => 'auth'], function () {
         Route::delete('/accounts/{code}', [AccountController::class, 'destroy'])->name('accounts.destroy');
     });
 
-    Route::group(['middleware' => 'level:1,2'], function () {
+    Route::group(['middleware' => 'level:1'], function () {
         Route::get('/categories', [CategoryController::class, 'index'])->name('categories.index');
         Route::get('/categories/create', [CategoryController::class, 'create'])->name('categories.create');
         Route::post('/categories', [CategoryController::class, 'store'])->name('categories.store');
@@ -122,23 +123,22 @@ Route::group(['middleware' => 'auth'], function () {
         Route::delete('/categories/{code}', [CategoryController::class, 'destroy'])->name('categories.destroy');
     });
     
-    Route::group(['middleware' => 'level:1,2'], function () {
+    Route::group(['middleware' => 'level:1'], function () {
         Route::get('/transaction', [TransactionController::class, 'index'])->name('transaction.index');
         Route::post('/transaction/store', [TransactionController::class, 'store'])->name('transaction.store');
-        
-        // Updated DELETE route
         Route::delete('/transaction/{id}', [TransactionController::class, 'destroy'])->name('transaction.destroy');
-    
         Route::post('import', [TransactionController::class, 'import'])->name('transaction.import');
         Route::get('data', [TransactionController::class, 'getData'])->name('transaction.data');
         Route::get('labarugi', [TransactionController::class, 'showLabaRugi'])->name('transaction.labarugi');
-    
-        // Routes for editing and updating transactions
         Route::get('/transaction/{id}/edit', [TransactionController::class, 'edit'])->name('transaction.edit');
         Route::put('/transaction/{id}', [TransactionController::class, 'update'])->name('transaction.update');
     });
     
-    
+    // Route untuk melihat laporan saldo
+Route::get('/report/penjualan', [PaymentController::class, 'index'])->name('report.penjualan');
+
+// Route untuk menarik saldo non-tunai
+Route::post('/payment/withdraw', [PaymentController::class, 'withdraw'])->name('payment.withdraw');
 
     Route::get('/profit-loss-report', [ReportController::class, 'profitLoss'])->name('report.profit_loss');
     Route::get('/balance_sheet', [ReportController::class, 'balanceSheet'])->name('report.balance_sheet');

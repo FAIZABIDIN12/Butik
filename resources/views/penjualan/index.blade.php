@@ -14,6 +14,7 @@
     <div class="col-lg-12">
         <div class="box">
             <div class="box-body table-responsive">
+                
                 <table class="table table-stiped table-bordered table-penjualan">
                     <thead>
                         <th width="5%">No</th>
@@ -22,6 +23,7 @@
                         <th>Total Item</th>
                         <th>Total Harga</th>
                         <th>Diskon</th>
+                        <th>Payment</th>
                         <th>Total Bayar</th>
                         <th>Kasir</th>
                         <th width="15%"><i class="fa fa-cog"></i></th>
@@ -53,6 +55,7 @@
                 {data: 'total_item'},
                 {data: 'total_harga'},
                 {data: 'diskon'},
+                {data: 'metode_pembayaran'},
                 {data: 'bayar'},
                 {data: 'kasir'},
                 {data: 'aksi', searchable: false, sortable: false},
