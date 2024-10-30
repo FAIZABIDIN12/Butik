@@ -8,6 +8,7 @@ use App\Models\Produk;
 use App\Models\Account;
 use App\Models\LedgerEntry;
 use App\Models\Setting;
+use App\Models\Payment;
 use App\Models\Transaction;
 use App\Models\MonthlyBalance;
 use Illuminate\Http\Request;
@@ -82,11 +83,12 @@ class PenjualanController extends Controller
     {
         // Validasi input
         $request->validate([
-            'id_member' => 'nullable|exists:members,id',
+            'id_member' => 'nullable|exists:member,id_member',
             'total_item' => 'required|integer',
             'diskon' => 'required|numeric',
             'bayar' => 'required|numeric',
             'total' => 'required|numeric',
+            'metode_pembayaran' => 'required|in:tunai,non_tunai',
         ]);
     
         // Temukan penjualan yang ada
@@ -96,18 +98,24 @@ class PenjualanController extends Controller
         $penjualan->total_harga = $request->total;
         $penjualan->diskon = $request->diskon;
         $penjualan->bayar = $request->bayar;
-        $penjualan->diterima = $request->diterima;
+        $penjualan->metode_pembayaran = $request->metode_pembayaran;
         $penjualan->update();
     
         // Update detail penjualan dan stok produk
         $detail = PenjualanDetail::where('id_penjualan', $penjualan->id_penjualan)->get();
+        $totalHPP = 0; // Initialize total HPP (cost of goods sold)
+    
         foreach ($detail as $item) {
             $item->diskon = $request->diskon;
             $item->update();
     
+            // Update stock of product
             $produk = Produk::find($item->id_produk);
             $produk->stok -= $item->jumlah;
             $produk->update();
+    
+            // Calculate total cost for the item (assuming `harga_beli` is the cost price)
+            $totalHPP += $produk->harga_beli * $item->jumlah; // Assuming `harga_beli` is the cost price in the Produk model
         }
     
         // Ambil kategori dan akun terkait untuk cashflow
@@ -127,6 +135,23 @@ class PenjualanController extends Controller
             'transaction_at' => now(),
         ]);
     
+ // Menyimpan pembayaran
+ $payment = Payment::where('metode_pembayaran', $request->metode_pembayaran)->first();
+
+if ($payment) {
+    // Jika sudah ada, update saldo
+    $payment->amount += $request->bayar; // Update jumlah pembayaran yang ada
+    $payment->save();
+} else {
+    // Jika belum ada, buat pembayaran baru
+    Payment::create([
+        'penjualan_id' => $penjualan->id_penjualan,
+        'amount' => $request->bayar,
+        'metode_pembayaran' => $request->metode_pembayaran,
+    ]);
+}
+
+
         // Update saldo akun Pendapatan HPP BD (Akun 401)
         $pendapatanAccount = Account::where('code', '401')->first();
         if ($pendapatanAccount) {
@@ -143,6 +168,24 @@ class PenjualanController extends Controller
             ]);
     
             $this->updateMonthlyBalance($pendapatanAccount->code, $request->total);
+        }
+    
+        // Update saldo akun Biaya HPP (Akun 501) untuk mencatat COGS
+        $biayaHPPAccount = Account::where('code', '501')->first();
+        if ($biayaHPPAccount) {
+            $biayaHPPAccount->current_balance += $totalHPP; // Increment current balance by the total HPP
+            $biayaHPPAccount->save();
+    
+            LedgerEntry::create([
+                'transaction_id' => $transaction->id,
+                'account_code' => $biayaHPPAccount->code,
+                'entry_date' => now(),
+                'entry_type' => 'debit', // COGS is a debit entry
+                'amount' => $totalHPP,
+                'balance' => $biayaHPPAccount->current_balance,
+            ]);
+    
+            $this->updateMonthlyBalance($biayaHPPAccount->code, $totalHPP);
         }
     
         // Update saldo akun Kas Butik (Akun 102)

@@ -111,6 +111,15 @@
                                 </div>
                             </div>
                             <div class="form-group row">
+                                <label for="metode_pembayaran" class="col-lg-2 control-label">payment</label>
+                                <div class="col-lg-8">
+                                    <select name="metode_pembayaran" id="metode_pembayaran" class="form-control">
+                                        <option value="tunai">Tunai</option>
+                                        <option value="non_tunai">Non Tunai</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="form-group row">
                                 <label for="bayar" class="col-lg-2 control-label">Bayar</label>
                                 <div class="col-lg-8">
                                     <input type="text" id="bayarrp" class="form-control" readonly>
