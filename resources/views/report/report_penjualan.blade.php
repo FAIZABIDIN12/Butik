@@ -79,7 +79,7 @@
     <div class="form-group">
         <label for="method">Metode:</label>
         <select name="method" class="form-control" required>
-            <option value="tunai">Tunai</option>
+            <!-- <option value="tunai">Tunai</option> -->
             <option value="non_tunai">Non Tunai</option>
         </select>
     </div>
