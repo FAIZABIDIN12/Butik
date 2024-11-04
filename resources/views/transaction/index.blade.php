@@ -33,10 +33,13 @@
                         <i class="fa fa-filter"></i> Tampilkan
                     </button>
                     <button type="button" class="btn btn-success btn-lg" data-toggle="modal" data-target="#addTransactionModal" style="height: 50px;">
-                        <i class="fa fa-plus-circle"></i> Tambah Transaksi
+                        <i class="fa fa-plus-circle"></i> Transaksi
                     </button>
                     <button type="button" class="btn btn-warning btn-lg" data-toggle="modal" data-target="#importTransactionModal" style="height: 50px;">
-                        <i class="fa fa-upload"></i> Import Transaksi
+                        <i class="fa fa-upload"></i> Transaksi
+                    </button>
+                    <button type="button" class="btn btn-danger btn-lg" data-toggle="modal" data-target="#importTransactionModal" style="height: 50px;">
+                        <i class="fa fa-download"></i> Report
                     </button>
                 </div>
             </div>

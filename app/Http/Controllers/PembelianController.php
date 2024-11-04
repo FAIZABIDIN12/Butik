@@ -90,9 +90,12 @@ class PembelianController extends Controller
         // Mengambil data pembelian dan update
         $pembelian = Pembelian::findOrFail($request->id_pembelian);
         $pembelian->total_item = $request->total_item;
-        $pembelian->total_harga = $request->total; // Pastikan ada 'total' pada request
         $pembelian->diskon = $request->diskon;
         $pembelian->bayar = $request->bayar;
+    
+        // Hitung total harga setelah diskon
+        $totalSetelahDiskon = $request->total - ($request->total * $request->diskon / 100);
+        $pembelian->total_harga = $totalSetelahDiskon; // Update total_harga dengan harga setelah diskon
         $pembelian->update();
     
         // Update stok produk berdasarkan pembelian
@@ -104,7 +107,7 @@ class PembelianController extends Controller
         }
     
         // Ambil kategori transaksi pembelian dan jumlah pembayaran
-        $cashflowAmount = $request->total; // Total pembayaran
+        $cashflowAmount = $totalSetelahDiskon; // Total pembayaran setelah diskon
         $cashflowCategoryCode = '011'; // Kode kategori untuk pembelian barang dagang
     
         // Simpan transaksi cashflow untuk pembelian
@@ -121,7 +124,7 @@ class PembelianController extends Controller
         // Update saldo akun HPP Barang Dagang
         $hppAccount = Account::where('code', '103')->first(); // Pastikan kode sesuai
         if ($hppAccount) {
-            $hppAccount->current_balance += $request->total; // Tambah saldo HPP
+            $hppAccount->current_balance += $totalSetelahDiskon; // Tambah saldo HPP dengan harga setelah diskon
             $hppAccount->save();
     
             // Buat entri ledger untuk akun HPP
@@ -130,18 +133,18 @@ class PembelianController extends Controller
                 'account_code' => $hppAccount->code,
                 'entry_date' => now(),
                 'entry_type' => 'debit',
-                'amount' => $request->total,
+                'amount' => $totalSetelahDiskon,
                 'balance' => $hppAccount->current_balance, // Saldo setelah transaksi
             ]);
     
             // Update Monthly Balance untuk akun HPP
-            $this->updateMonthlyBalance($hppAccount, $request->total, 'debit');
+            $this->updateMonthlyBalance($hppAccount, $totalSetelahDiskon, 'debit');
         }
     
         // Update saldo akun Kas Butik
         $kasButikAccount = Account::where('code', '102')->first(); // Pastikan kode sesuai
         if ($kasButikAccount) {
-            $kasButikAccount->current_balance -= $request->total; // Kurangi saldo Kas Butik
+            $kasButikAccount->current_balance -= $totalSetelahDiskon; // Kurangi saldo Kas Butik dengan harga setelah diskon
             $kasButikAccount->save();
     
             // Buat entri ledger untuk Kas Butik
@@ -150,16 +153,17 @@ class PembelianController extends Controller
                 'account_code' => $kasButikAccount->code,
                 'entry_date' => now(),
                 'entry_type' => 'credit',
-                'amount' => -$request->total, // Negative for credit
+                'amount' => $totalSetelahDiskon, // Positive amount for credit
                 'balance' => $kasButikAccount->current_balance, // Saldo setelah transaksi
             ]);
     
             // Update Monthly Balance untuk akun Kas Butik
-            $this->updateMonthlyBalance($kasButikAccount, $request->total, 'credit');
+            $this->updateMonthlyBalance($kasButikAccount, $totalSetelahDiskon, 'credit');
         }
     
         return redirect()->route('pembelian.index')->with('success', 'Pembelian berhasil disimpan dan cashflow diperbarui.');
     }
+    
     
     private function updateMonthlyBalance(?Account $account, $nominal, $type)
     {
