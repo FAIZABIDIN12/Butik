@@ -4,6 +4,8 @@ namespace App\Http\Controllers;
 
 use App\Models\Category;
 use App\Models\Account;
+use App\Models\Transaction;
+use App\Models\LedgerEntry;
 use Illuminate\Http\Request;
 
 class CategoryController extends Controller
@@ -14,7 +16,7 @@ class CategoryController extends Controller
         $accounts = Account::all()->keyBy('code'); // Menggunakan keyBy untuk memudahkan pencarian
         return view('categories.index', compact('categories', 'accounts'));
     }
-    
+
     public function create()
     {
         // Ambil semua akun untuk dropdown
@@ -35,7 +37,12 @@ class CategoryController extends Controller
 
         // Simpan kategori dengan data dari request
         Category::create($request->only([
-            'code', 'type', 'name', 'debit_account_code', 'credit_account_code', 'note'
+            'code',
+            'type',
+            'name',
+            'debit_account_code',
+            'credit_account_code',
+            'note'
         ]));
 
         return redirect()->route('categories.index')->with('success', 'Kategori berhasil ditambahkan.');
@@ -62,7 +69,11 @@ class CategoryController extends Controller
         // Update kategori dengan data dari request
         $category = Category::findOrFail($code);
         $category->update($request->only([
-            'type', 'name', 'debit_account_code', 'credit_account_code', 'note'
+            'type',
+            'name',
+            'debit_account_code',
+            'credit_account_code',
+            'note'
         ]));
 
         return redirect()->route('categories.index')->with('success', 'Kategori berhasil diperbarui.');
@@ -73,5 +84,26 @@ class CategoryController extends Controller
         $category = Category::findOrFail($code);
         $category->delete();
         return redirect()->route('categories.index')->with('success', 'Kategori berhasil dihapus.');
+    }
+
+    public function report()
+    {
+        // Ambil semua kategori dengan relasi akun debit dan kredit
+        $categories = Category::with(['debitAccount', 'creditAccount', 'transactions'])->get();
+
+        // Proses data kategori menjadi format yang diinginkan
+        $categoryData = $categories->map(function ($category) {
+            return [
+                'category_code' => $category->code,
+                'category_name' => $category->name,
+                'debit_account' => $category->debitAccount ? $category->debitAccount->name : 'Tidak ada',
+                'debit_total' => $category->transactions->where('category_code', $category->code)->sum('nominal'), // Gunakan 'transactions' yang sudah di-load dengan relasi
+                'credit_account' => $category->creditAccount ? $category->creditAccount->name : 'Tidak ada',
+                'credit_total' => $category->transactions->where('category_code', $category->code)->sum('nominal'), // Gunakan 'transactions' yang sudah di-load dengan relasi
+            ];
+        });
+
+        // Kirim data kategori yang sudah diproses ke tampilan
+        return view('categories.report', compact('categoryData'));
     }
 }

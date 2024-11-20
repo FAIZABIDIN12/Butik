@@ -36,8 +36,7 @@ class Account extends Model
     }
 
     public function scopeLabaRugi($query)
-{
-    return $query->where('position', 'Laba Rugi');
-}
-
+    {
+        return $query->where('position', 'Laba Rugi');
+    }
 }

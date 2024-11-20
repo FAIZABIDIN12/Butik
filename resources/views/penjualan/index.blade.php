@@ -10,11 +10,32 @@
 @endsection
 
 @section('content')
+<form action="{{ route('export.penjualan') }}" method="GET">
+    <div class="row mb-4">
+        <!-- Start Date Filter -->
+        <div class="col-md-4 mb-3">
+            <input type="date" name="start_date" id="start_date" class="form-control form-control-lg" required style="height: 50px;">
+        </div>
+        
+        <!-- End Date Filter -->
+        <div class="col-md-4 mb-3">
+            <input type="date" name="end_date" id="end_date" class="form-control form-control-lg" required style="height: 50px;">
+        </div>
+        
+        <!-- Export Button -->
+        <div class="col-md-4 mb-3 d-flex align-items-end">
+            <button type="submit" class="btn btn-success btn-lg btn-flat" style="height: 50px; width: 50%;">
+                <i class="fa fa-download"></i> Export to Excel
+            </button>
+        </div>
+    </div>
+</form>
+<br>
+
 <div class="row">
     <div class="col-lg-12">
         <div class="box">
             <div class="box-body table-responsive">
-                
                 <table class="table table-stiped table-bordered table-penjualan">
                     <thead>
                         <th width="5%">No</th>
@@ -28,6 +49,9 @@
                         <th>Kasir</th>
                         <th width="15%"><i class="fa fa-cog"></i></th>
                     </thead>
+                    <tbody>
+                        {{-- Data tables would populate the rows here --}}
+                    </tbody>
                 </table>
             </div>
         </div>
@@ -76,28 +100,28 @@
             ]
         })
     });
-
     function showDetail(url) {
-        $('#modal-detail').modal('show');
+    $('#modal-detail').modal('show');  // Menampilkan modal
+    table1.ajax.url(url).load();        // Memuat data ke dalam DataTable
+}
 
-        table1.ajax.url(url);
-        table1.ajax.reload();
-    }
+    // Add event listener for the Download Button
+    $('#downloadBtn').on('click', function() {
+        // Get the selected start date and end date
+        var start_date = $('#start_date').val();
+        var end_date = $('#end_date').val();
 
-    function deleteData(url) {
-        if (confirm('Yakin ingin menghapus data terpilih?')) {
-            $.post(url, {
-                    '_token': $('[name=csrf-token]').attr('content'),
-                    '_method': 'delete'
-                })
-                .done((response) => {
-                    table.ajax.reload();
-                })
-                .fail((errors) => {
-                    alert('Tidak dapat menghapus data');
-                    return;
-                });
+        // Validate the dates before submitting
+        if (!start_date || !end_date) {
+            alert('Harap pilih tanggal mulai dan tanggal akhir!');
+            return;
         }
-    }
+
+        // Build the URL with query parameters
+        var url = '{{ route('export.penjualan') }}' + '?start_date=' + start_date + '&end_date=' + end_date;
+
+        // Redirect the user to the export route with the selected dates
+        window.location.href = url;
+    });
 </script>
 @endpush

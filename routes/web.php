@@ -19,6 +19,7 @@ use App\Http\Controllers\{
     TransactionController,
     ReportController,
     PaymentController,
+    ExportPenjualanController
 };
 use Illuminate\Support\Facades\Route;
 
@@ -121,8 +122,9 @@ Route::group(['middleware' => 'auth'], function () {
         Route::get('/categories/{code}/edit', [CategoryController::class, 'edit'])->name('categories.edit');
         Route::put('/categories/{code}', [CategoryController::class, 'update'])->name('categories.update');
         Route::delete('/categories/{code}', [CategoryController::class, 'destroy'])->name('categories.destroy');
+        Route::get('/reportjurnal', [CategoryController::class, 'report'])->name('categories.report');
     });
-    
+
     Route::group(['middleware' => 'level:1'], function () {
         Route::get('/transaction', [TransactionController::class, 'index'])->name('transaction.index');
         Route::post('/transaction/store', [TransactionController::class, 'store'])->name('transaction.store');
@@ -132,19 +134,22 @@ Route::group(['middleware' => 'auth'], function () {
         Route::get('labarugi', [TransactionController::class, 'showLabaRugi'])->name('transaction.labarugi');
         Route::get('/transaction/{id}/edit', [TransactionController::class, 'edit'])->name('transaction.edit');
         Route::put('/transaction/{id}', [TransactionController::class, 'update'])->name('transaction.update');
+        Route::get('/journal', [TransactionController::class, 'generateJournalReport'])->name('transaction.journal_report');
+        Route::get('/journal-report', [TransactionController::class, 'journalReport'])->name('journal.report');
     });
-    
-    // Route untuk melihat laporan saldo
-Route::get('/report/penjualan', [PaymentController::class, 'index'])->name('report.penjualan');
 
-// Route untuk menarik saldo non-tunai
-Route::post('/payment/withdraw', [PaymentController::class, 'withdraw'])->name('payment.withdraw');
+    Route::get('export-penjualan', [ExportPenjualanController::class, 'export'])->name('export.penjualan');
+    // Route untuk melihat laporan saldo
+    Route::get('/report/penjualan', [PaymentController::class, 'index'])->name('report.penjualan');
+
+    // Route untuk menarik saldo non-tunai
+    Route::post('/payment/withdraw', [PaymentController::class, 'withdraw'])->name('payment.withdraw');
 
     Route::get('/profit-loss-report', [ReportController::class, 'profitLoss'])->name('report.profit_loss');
     Route::get('/balance_sheet', [ReportController::class, 'balanceSheet'])->name('report.balance_sheet');
-    });
+});
 
-    Route::group(['middleware' => 'level:1,2'], function () {
-        Route::get('/profil', [UserController::class, 'profil'])->name('user.profil');
-        Route::post('/profil', [UserController::class, 'updateProfil'])->name('user.update_profil');
-    });
+Route::group(['middleware' => 'level:1,2'], function () {
+    Route::get('/profil', [UserController::class, 'profil'])->name('user.profil');
+    Route::post('/profil', [UserController::class, 'updateProfil'])->name('user.update_profil');
+});

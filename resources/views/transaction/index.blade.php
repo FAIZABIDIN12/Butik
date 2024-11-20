@@ -38,18 +38,11 @@
                     <button type="button" class="btn btn-warning btn-lg" data-toggle="modal" data-target="#importTransactionModal" style="height: 50px;">
                         <i class="fa fa-upload"></i> Transaksi
                     </button>
-                    <button type="button" class="btn btn-danger btn-lg" data-toggle="modal" data-target="#importTransactionModal" style="height: 50px;">
-                        <i class="fa fa-download"></i> Report
-                    </button>
                 </div>
             </div>
         </form>
     </div>
 </div>
-
-
-
-
                 <div style="margin-top: 20px;"></div>
                 <table class="table table-striped table-bordered table-hover" id="transactions-table">
                     <thead class="thead-light">
