@@ -123,5 +123,26 @@
         // Redirect the user to the export route with the selected dates
         window.location.href = url;
     });
+
+    function deleteData(url) {
+        // Konfirmasi sebelum menghapus data
+        if (confirm('Apakah Anda yakin ingin menghapus data ini?')) {
+            $.ajax({
+                url: url,
+                type: 'DELETE',
+                headers: {
+                    'X-CSRF-TOKEN': '{{ csrf_token() }}' // Token CSRF untuk keamanan
+                },
+                success: function (response) {
+                    alert('Data berhasil dihapus.');
+                    $('.table-penjualan').DataTable().ajax.reload(); // Reload DataTable
+                },
+                error: function (xhr) {
+                    alert('Terjadi kesalahan saat menghapus data. Silakan coba lagi.');
+                    console.error(xhr.responseText);
+                }
+            });
+        }
+    }
 </script>
 @endpush
