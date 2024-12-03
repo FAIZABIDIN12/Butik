@@ -15,6 +15,20 @@
         <div class="box">
             <div class="box-body table-responsive">
             <div class="row">
+                       <!-- Flash Messages -->
+                       @if(session('success'))
+                    <div class="alert alert-success alert-dismissible fade show" role="alert">
+                        {{ session('success') }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                @endif
+                @if(session('error'))
+                    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                        {{ session('error') }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                @endif
+
     <div class="col-md-12 d-flex justify-content-between align-items-center">
         <!-- Form Filter -->
         <form id="filter-form" method="GET" action="{{ route('transaction.index') }}" class="d-flex flex-grow-1">
@@ -68,9 +82,9 @@
                                 <td>{{ number_format($transaction->credit, 2) }}</td>
                                 <td>{{ number_format($transaction->saldo, 2) }}</td>
                                 <td >
-                                    <button class="btn btn-warning btn-sm edit" data-id="{{ $transaction->id }}">
+                                    <!-- <button class="btn btn-warning btn-sm edit" data-id="{{ $transaction->id }}">
                                         <i class="fa fa-edit"></i>
-                                    </button>
+                                    </button> -->
                                     <button class="btn btn-danger btn-sm delete" data-id="{{ $transaction->id }}">
                                         <i class="fa fa-trash"></i>
                                     </button>
@@ -259,5 +273,29 @@ $(document).ready(function() {
         }
     });
 });
+
+$('.delete').on('click', function() {
+    var transactionId = $(this).data('id');
+
+    if (confirm('Apakah Anda yakin ingin menghapus transaksi ini?')) {
+        // Create a form dynamically to handle DELETE request with CSRF token
+        var form = $('<form>', {
+            action: `/transaction/${transactionId}`,
+            method: 'POST'
+        }).append($('<input>', {
+            type: 'hidden',
+            name: '_method',
+            value: 'DELETE'
+        })).append($('<input>', {
+            type: 'hidden',
+            name: '_token',
+            value: '{{ csrf_token() }}'
+        }));
+
+        $('body').append(form);
+        form.submit(); // Submit the form
+    }
+});
+
 </script>
 @endpush
