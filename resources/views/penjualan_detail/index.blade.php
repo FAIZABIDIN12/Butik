@@ -1,7 +1,7 @@
 @extends('layouts.master')
 
 @section('title')
-    Transaksi Penjualan
+Transaksi Penjualan
 @endsection
 
 @push('css')
@@ -32,8 +32,8 @@
 @endpush
 
 @section('breadcrumb')
-    @parent
-    <li class="active">Transaksi Penjaualn</li>
+@parent
+<li class="active">Transaksi Penjaualn</li>
 @endsection
 
 @section('content')
@@ -41,7 +41,7 @@
     <div class="col-lg-12">
         <div class="box">
             <div class="box-body">
-                    
+
                 <form class="form-produk">
                     @csrf
                     <div class="form-group row">
@@ -106,8 +106,8 @@
                             <div class="form-group row">
                                 <label for="diskon" class="col-lg-2 control-label">Diskon</label>
                                 <div class="col-lg-8">
-                                    <input type="number" name="diskon" id="diskon" class="form-control" 
-                                        value="{{ ! empty($memberSelected->id_member) ? $diskon : 0 }}" >
+                                    <input type="number" name="diskon" id="diskon" class="form-control"
+                                        value="{{ ! empty($memberSelected->id_member) ? $diskon : 0 }}">
                                 </div>
                             </div>
                             <div class="form-group row">
@@ -143,11 +143,11 @@
             </div>
 
             <div class="box-footer">
-    <button type="submit" 
-            class="btn btn-success btn-lg btn-flat pull-right btn-simpan">
-        <i class="fa fa-floppy-o"></i> Simpan Transaksi
-    </button>
-</div>
+                <button type="submit"
+                    class="btn btn-success btn-lg btn-flat pull-right btn-simpan">
+                    <i class="fa fa-floppy-o"></i> Simpan Transaksi
+                </button>
+            </div>
 
         </div>
     </div>
@@ -161,38 +161,57 @@
 <script>
     let table, table2;
 
-    $(function () {
+    $(function() {
         $('body').addClass('sidebar-collapse');
 
         table = $('.table-penjualan').DataTable({
-            processing: true,
-            autoWidth: false,
-            ajax: {
-                url: '{{ route('transaksi.data', $id_penjualan) }}',
-            },
-            columns: [
-                {data: 'DT_RowIndex', searchable: false, sortable: false},
-                {data: 'kode_produk'},
-                {data: 'nama_produk'},
-                {data: 'harga_jual'},
-                {data: 'jumlah'},
-                {data: 'diskon'},
-                {data: 'subtotal'},
-                {data: 'aksi', searchable: false, sortable: false},
-            ],
-            dom: 'Brt',
-            bSort: false,
-            paginate: false
-        })
-        .on('draw.dt', function () {
-            loadForm($('#diskon').val());
-            setTimeout(() => {
-                $('#diterima').trigger('input');
-            }, 300);
-        });
+                processing: true,
+                autoWidth: false,
+                ajax: {
+                    url: "<?php echo route('transaksi.data', $id_penjualan); ?>",
+                },
+                columns: [{
+                        data: 'DT_RowIndex',
+                        searchable: false,
+                        sortable: false
+                    },
+                    {
+                        data: 'kode_produk'
+                    },
+                    {
+                        data: 'nama_produk'
+                    },
+                    {
+                        data: 'harga_jual'
+                    },
+                    {
+                        data: 'jumlah'
+                    },
+                    {
+                        data: 'diskon'
+                    },
+                    {
+                        data: 'subtotal'
+                    },
+                    {
+                        data: 'aksi',
+                        searchable: false,
+                        sortable: false
+                    },
+                ],
+                dom: 'Brt',
+                bSort: false,
+                paginate: false
+            })
+            .on('draw.dt', function() {
+                loadForm($('#diskon').val());
+                setTimeout(() => {
+                    $('#diterima').trigger('input');
+                }, 300);
+            });
         table2 = $('.table-produk').DataTable();
 
-        $(document).on('input', '.quantity', function () {
+        $(document).on('input', '.quantity', function() {
             let id = $(this).data('id');
             let jumlah = parseInt($(this).val());
 
@@ -213,7 +232,7 @@
                     'jumlah': jumlah
                 })
                 .done(response => {
-                    $(this).on('mouseout', function () {
+                    $(this).on('mouseout', function() {
                         table.ajax.reload(() => loadForm($('#diskon').val()));
                     });
                 })
@@ -223,7 +242,7 @@
                 });
         });
 
-        $(document).on('input', '#diskon', function () {
+        $(document).on('input', '#diskon', function() {
             if ($(this).val() == "") {
                 $(this).val(0).select();
             }
@@ -231,17 +250,19 @@
             loadForm($(this).val());
         });
 
-        $('#diterima').on('input', function () {
+
+
+        $('#diterima').on('input', function() {
             if ($(this).val() == "") {
                 $(this).val(0).select();
             }
 
             loadForm($('#diskon').val(), $(this).val());
-        }).focus(function () {
+        }).focus(function() {
             $(this).select();
         });
 
-        $('.btn-simpan').on('click', function () {
+        $('.btn-simpan').on('click', function() {
             $('.form-penjualan').submit();
         });
     });
@@ -262,7 +283,7 @@
     }
 
     function tambahProduk() {
-        $.post('{{ route('transaksi.store') }}', $('.form-produk').serialize())
+        $.post("<?php echo route('transaksi.store'); ?>", $('.form-produk').serialize())
             .done(response => {
                 $('#kode_produk').focus();
                 table.ajax.reload(() => loadForm($('#diskon').val()));
@@ -271,6 +292,7 @@
                 alert('Tidak dapat menyimpan data');
                 return;
             });
+
     }
 
     function tampilMember() {
@@ -306,28 +328,46 @@
         }
     }
 
+    function roundToNearestThousand(amount) {
+        const remainder = amount % 1000;
+
+        if (remainder > 500) {
+            // Jika sisa lebih dari 500, bulatkan ke atas
+            return Math.ceil(amount / 1000) * 1000;
+        } else if (remainder === 500) {
+            // Jika sisa tepat 500, hasil tetap
+            return amount;
+        } else {
+            // Jika sisa kurang dari 500, bulatkan ke bawah
+            return Math.floor(amount / 1000) * 1000;
+        }
+    }
+
+
     function loadForm(diskon = 0, diterima = 0) {
         $('#total').val($('.total').text());
         $('#total_item').val($('.total_item').text());
 
         $.get(`{{ url('/transaksi/loadform') }}/${diskon}/${$('.total').text()}/${diterima}`)
             .done(response => {
-                $('#totalrp').val('Rp. '+ response.totalrp);
-                $('#bayarrp').val('Rp. '+ response.bayarrp);
-                $('#bayar').val(response.bayar);
-                $('.tampil-bayar').text('Bayar: Rp. '+ response.bayarrp);
+                const roundedBayar = roundToNearestThousand(response.bayar);
+                $('#totalrp').val('Rp. ' + response.totalrp);
+                $('#bayarrp').val('Rp. ' + roundedBayar);
+                $('#bayar').val(roundedBayar);
+                $('.tampil-bayar').text('Bayar: Rp. ' + roundedBayar);
                 $('.tampil-terbilang').text(response.terbilang);
 
-                $('#kembali').val('Rp.'+ response.kembalirp);
-                if ($('#diterima').val() != 0) {
-                    $('.tampil-bayar').text('Kembali: Rp. '+ response.kembalirp);
+                const kembali = diterima - roundedBayar;
+                $('#kembali').val('Rp.' + kembali);
+                if (diterima != 0) {
+                    $('.tampil-bayar').text('Kembali: Rp. ' + kembali);
                     $('.tampil-terbilang').text(response.kembali_terbilang);
                 }
             })
             .fail(errors => {
                 alert('Tidak dapat menampilkan data');
                 return;
-            })
+            });
     }
 </script>
 @endpush

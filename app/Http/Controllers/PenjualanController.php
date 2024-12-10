@@ -81,7 +81,6 @@ class PenjualanController extends Controller
 
     public function store(Request $request)
     {
-        // Validasi input
         $request->validate([
             'id_member' => 'nullable|exists:member,id_member',
             'total_item' => 'required|integer',
@@ -94,17 +93,19 @@ class PenjualanController extends Controller
 
         // Temukan penjualan yang ada
         $penjualan = Penjualan::findOrFail($request->id_penjualan);
+
+        // Terapkan pembulatan pada nilai yang relevan
+        $roundedBayar = $this->roundToNearestThousand($request->bayar);
+        $totalSetelahDiskon = $this->roundToNearestThousand($request->total - ($request->total * $request->diskon / 100));
+
         $penjualan->id_member = $request->id_member;
         $penjualan->total_item = $request->total_item;
-        $penjualan->total_harga = $request->total;
+        $penjualan->total_harga = $this->roundToNearestThousand($request->total); // Pembulatan total harga
         $penjualan->diskon = $request->diskon;
-        $penjualan->bayar = $request->bayar;
-        $penjualan->diterima = $request->diterima;
+        $penjualan->bayar = $roundedBayar;
+        $penjualan->diterima = $this->roundToNearestThousand($request->diterima); // Pembulatan nilai diterima
         $penjualan->metode_pembayaran = $request->metode_pembayaran;
         $penjualan->update();
-
-        // Hitung total harga setelah diskon
-        $totalSetelahDiskon = $request->total - ($request->total * $request->diskon / 100);
 
         // Update detail penjualan dan stok produk
         $detail = PenjualanDetail::where('id_penjualan', $penjualan->id_penjualan)->get();
@@ -139,12 +140,12 @@ class PenjualanController extends Controller
         // Simpan atau update pembayaran
         $payment = Payment::where('metode_pembayaran', $request->metode_pembayaran)->first();
         if ($payment) {
-            $payment->amount += $request->bayar;
+            $payment->amount += $roundedBayar; // Gunakan nilai bayar yang sudah dibulatkan
             $payment->save();
         } else {
             Payment::create([
                 'penjualan_id' => $penjualan->id_penjualan,
-                'amount' => $request->bayar,
+                'amount' => $roundedBayar,
                 'metode_pembayaran' => $request->metode_pembayaran,
             ]);
         }
@@ -165,24 +166,6 @@ class PenjualanController extends Controller
             ]);
 
             $this->updateMonthlyBalance($pendapatanAccount->code, $totalSetelahDiskon);
-        }
-
-        // Update saldo akun Biaya HPP (Akun 501)
-        $biayaHPPAccount = Account::where('code', '501')->first();
-        if ($biayaHPPAccount) {
-            $biayaHPPAccount->current_balance += $totalHPP;
-            $biayaHPPAccount->save();
-
-            LedgerEntry::create([
-                'transaction_id' => $transaction->id,
-                'account_code' => $biayaHPPAccount->code,
-                'entry_date' => now(),
-                'entry_type' => 'debit',
-                'amount' => $totalHPP,
-                'balance' => $biayaHPPAccount->current_balance,
-            ]);
-
-            $this->updateMonthlyBalance($biayaHPPAccount->code, $totalHPP);
         }
 
         // Update saldo akun Kas Butik (Akun 102)
@@ -225,6 +208,18 @@ class PenjualanController extends Controller
     }
 
 
+    private function roundToNearestThousand($amount)
+    {
+        $remainder = $amount % 1000;
+
+        if ($remainder > 500) {
+            return ceil($amount / 1000) * 1000; // Bulatkan ke atas
+        } elseif ($remainder === 500) {
+            return $amount; // Tidak dibulatkan jika sisa tepat 500
+        } else {
+            return floor($amount / 1000) * 1000; // Bulatkan ke bawah
+        }
+    }
     // Fungsi untuk memperbarui saldo bulanan
     private function updateMonthlyBalance($accountCode, $amount)
     {
