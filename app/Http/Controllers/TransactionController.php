@@ -260,37 +260,37 @@ class TransactionController extends Controller
     {
         try {
             $transaction = Transaction::findOrFail($id);
-    
+
             // Get the nominal value and category code before deleting
             $nominal = $transaction->nominal;
             $category = Category::where('code', $transaction->category_code)->first();
-    
+
             if (!$category) {
                 return redirect()->route('transaction.index')->with('error', 'Category not found.');
             }
-    
+
             // Retrieve the debit and credit accounts
             $debetAccount = Account::where('code', $category->debit_account_code)->first();
             $creditAccount = Account::where('code', $category->credit_account_code)->first();
-    
+
             if (!$debetAccount || !$creditAccount) {
                 return redirect()->route('transaction.index')->with('error', 'Accounts not found.');
             }
-    
+
             // Adjust balances for the deleted transaction
             $this->updateMonthlyBalance($debetAccount, $nominal, 'credit'); // Reverse the effect of debit
             $this->updateMonthlyBalance($creditAccount, $nominal, 'debit'); // Reverse the effect of credit
-    
+
             // Delete the transaction
             $transaction->delete();
-    
+
             return redirect()->route('transaction.index')->with('success', 'Transaction deleted successfully.');
         } catch (\Exception $e) {
             // Handle any errors
             return redirect()->route('transaction.index')->with('error', 'Failed to delete transaction: ' . $e->getMessage());
         }
     }
-    
+
 
 
     public function import(Request $request)

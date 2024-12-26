@@ -9,16 +9,28 @@ use App\Models\LedgerEntry;
 use App\Models\Account;
 use Maatwebsite\Excel\Concerns\ToModel;
 use Maatwebsite\Excel\Concerns\WithHeadingRow;
-
+use Illuminate\Support\Facades\Log;
 
 class ProdukImport implements ToModel, WithHeadingRow
 {
+    private $rowNumber = 1; // Melacak nomor baris
+
     public function model(array $row)
     {
-        // Pastikan kolom kategori tidak kosong dan valid
+        // Periksa jika seluruh baris kosong
+        if (array_filter($row, fn($value) => !is_null($value) && $value !== '') === []) {
+            Log::info('Baris kosong dilewati', ['baris' => $this->rowNumber]);
+            $this->rowNumber++;
+            return null;
+        }
+
+        // Pastikan kolom kategori tidak kosong
         if (empty($row['kategori'])) {
-            // Log atau lewati baris ini jika 'kategori' kosong
-            \Log::warning('Baris dilewati karena kategori kosong', $row);
+            Log::warning('Baris dilewati karena kategori kosong', [
+                'baris' => $this->rowNumber,
+                'data' => $row
+            ]);
+            $this->rowNumber++;
             return null;
         }
 
@@ -39,10 +51,27 @@ class ProdukImport implements ToModel, WithHeadingRow
         // Cek apakah produk sudah ada
         $existingProduct = Produk::where('nama_produk', $row['nama_produk'])->first();
 
-        // Parsing harga dan diskon
-        $harga_beli = isset($row['harga_beli']) ? floatval(str_replace('.', '', $row['harga_beli'])) : 0.0;
-        $harga_jual = isset($row['harga_jual']) ? floatval(str_replace('.', '', $row['harga_jual'])) : 0.0;
-        $diskon = isset($row['diskon']) ? floatval($row['diskon']) : 0.0;
+        // Parsing harga beli dengan validasi
+        $harga_beli = isset($row['harga_beli'])
+            ? (float) str_replace(',', '', str_replace('.', '', $row['harga_beli']))
+            : 0.0;
+
+        // Validasi tambahan harga beli
+        if ($harga_beli > 1000000) { // Batas harga beli tidak masuk akal
+            Log::warning('Harga beli tidak masuk akal, diset menjadi 0', [
+                'baris' => $this->rowNumber,
+                'harga_beli' => $harga_beli,
+            ]);
+            $harga_beli = 0.0;
+        }
+
+        // Parsing harga jual dengan validasi
+        $harga_jual = isset($row['harga_jual'])
+            ? (float) preg_replace('/[^0-9]/', '', str_replace(',', '.', $row['harga_jual']))
+            : 0.0;
+
+        // Parsing diskon
+        $diskon = isset($row['diskon']) && is_numeric($row['diskon']) ? (float) $row['diskon'] : 0.0;
 
         // Hitung total nilai untuk stok
         $totalValue = $stok * $harga_beli;
@@ -50,7 +79,7 @@ class ProdukImport implements ToModel, WithHeadingRow
         // Update produk yang sudah ada atau buat produk baru
         if ($existingProduct) {
             $existingProduct->update([
-                'stok' => $stok,
+                'stok' => $existingProduct->stok + $stok,
                 'harga_beli' => $harga_beli,
                 'harga_jual' => $harga_jual,
                 'diskon' => $diskon,
@@ -58,8 +87,9 @@ class ProdukImport implements ToModel, WithHeadingRow
                 'rak' => $row['rak'] ?? null,
             ]);
 
-            // Proses transaksi
+            // Proses transaksi untuk produk yang diperbarui
             $this->createTransaction($existingProduct, $stok, $harga_beli, $totalValue);
+            $this->rowNumber++;
             return null;
         }
 
@@ -76,10 +106,12 @@ class ProdukImport implements ToModel, WithHeadingRow
             'rak' => $row['rak'] ?? null,
         ]);
 
-        // Proses transaksi
+        // Proses transaksi untuk produk baru
         $this->createTransaction($newProduct, $stok, $harga_beli, $totalValue);
+        $this->rowNumber++;
         return $newProduct;
     }
+
 
     private function createTransaction($product, $stok, $harga_beli, $totalValue)
     {

@@ -125,9 +125,14 @@ Route::group(['middleware' => 'auth'], function () {
         Route::get('/reportjurnal', [CategoryController::class, 'report'])->name('categories.report');
     });
 
-    Route::group(['middleware' => 'level:1'], function () {
+    Route::group(['middleware' => 'level:1,2'], function () {
+        // Rute yang bisa diakses oleh level 1 dan level 2
         Route::get('/transaction', [TransactionController::class, 'index'])->name('transaction.index');
         Route::post('/transaction/store', [TransactionController::class, 'store'])->name('transaction.store');
+    });
+
+    Route::group(['middleware' => 'level:1'], function () {
+        // Rute khusus untuk level 1
         Route::delete('/transaction/{id}', [TransactionController::class, 'destroy'])->name('transaction.destroy');
         Route::post('import', [TransactionController::class, 'import'])->name('transaction.import');
         Route::get('data', [TransactionController::class, 'getData'])->name('transaction.data');

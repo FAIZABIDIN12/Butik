@@ -1,12 +1,12 @@
 @extends('layouts.master')
 
 @section('title')
-    Daftar Produk
+Daftar Produk
 @endsection
 
 @section('breadcrumb')
-    @parent
-    <li class="active">Daftar Produk</li>
+@parent
+<li class="active">Daftar Produk</li>
 @endsection
 
 @section('content')
@@ -14,28 +14,28 @@
     <div class="col-lg-12">
         <div class="box">
             <div class="box-header with-border">
-            <div class="btn-group">
-    <button onclick="addForm('{{ route('produk.store') }}')" 
-            class="btn btn-primary btn-lg btn-flat" 
-            style=" margin-right: 10px;">
-        <i class="fa fa-plus-circle"></i> Tambah
-    </button>
-    <button onclick="deleteSelected('{{ route('produk.delete_selected') }}')" 
-            class="btn btn-danger btn-lg btn-flat" 
-            style="background-color: #dc3545; border-color: #dc3545; color: white; margin-right: 10px;">
-        <i class="fa fa-trash"></i> Hapus
-    </button>
-    <button onclick="cetakBarcode('{{ route('produk.cetak_barcode') }}')" 
-            class="btn btn-info btn-lg btn-flat" 
-            style="background-color: #17a2b8; border-color: #17a2b8; color: white;">
-        <i class="fa fa-barcode"></i> Cetak Barcode
-    </button>
-    <button onclick="showImportModal()" 
-            class="btn btn-warning btn-lg btn-flat" 
-            style="background-color: #ffc107; border-color: #ffc107; color: white; margin-left: 10px;">
-        <i class="fa fa-upload"></i> Import
-    </button>
-</div>
+                <div class="btn-group">
+                    <button onclick="addForm('{{ route('produk.store') }}')"
+                        class="btn btn-primary btn-lg btn-flat"
+                        style=" margin-right: 10px;">
+                        <i class="fa fa-plus-circle"></i> Tambah
+                    </button>
+                    <button onclick="deleteSelected('{{ route('produk.delete_selected') }}')"
+                        class="btn btn-danger btn-lg btn-flat"
+                        style="background-color: #dc3545; border-color: #dc3545; color: white; margin-right: 10px;">
+                        <i class="fa fa-trash"></i> Hapus
+                    </button>
+                    <button onclick="cetakBarcode('{{ route('produk.cetak_barcode') }}')"
+                        class="btn btn-info btn-lg btn-flat"
+                        style="background-color: #17a2b8; border-color: #17a2b8; color: white;">
+                        <i class="fa fa-barcode"></i> Cetak Barcode
+                    </button>
+                    <button onclick="showImportModal()"
+                        class="btn btn-warning btn-lg btn-flat"
+                        style="background-color: #ffc107; border-color: #ffc107; color: white; margin-left: 10px;">
+                        <i class="fa fa-upload"></i> Import
+                    </button>
+                </div>
 
             </div>
             <div class="box-body table-responsive">
@@ -99,31 +99,60 @@
 <script>
     let table;
 
-    $(function () {
+    $(function() {
         table = $('.table').DataTable({
             processing: true,
             autoWidth: false,
             ajax: {
-                url: '{{ route('produk.data') }}',
+                url: '<?php echo route('produk.data'); ?>',
             },
-            columns: [
-                {data: 'select_all', searchable: false, sortable: false},
-                {data: 'DT_RowIndex', searchable: false, sortable: false},
-                {data: 'kode_produk'},
-                {data: 'nama_produk'},
-                {data: 'nama_kategori'},
-                {data: 'merk'},
-                {data: 'harga_beli'},
-                {data: 'harga_jual'},
-                {data: 'diskon'},
-                {data: 'stok'},
-                {data: 'rak'},
-                {data: 'aksi', searchable: false, sortable: false},
+            columns: [{
+                    data: 'select_all',
+                    searchable: false,
+                    sortable: false
+                },
+                {
+                    data: 'DT_RowIndex',
+                    searchable: false,
+                    sortable: false
+                },
+                {
+                    data: 'kode_produk'
+                },
+                {
+                    data: 'nama_produk'
+                },
+                {
+                    data: 'nama_kategori'
+                },
+                {
+                    data: 'merk'
+                },
+                {
+                    data: 'harga_beli'
+                },
+                {
+                    data: 'harga_jual'
+                },
+                {
+                    data: 'diskon'
+                },
+                {
+                    data: 'stok'
+                },
+                {
+                    data: 'rak'
+                },
+                {
+                    data: 'aksi',
+                    searchable: false,
+                    sortable: false
+                },
             ]
         });
 
-        $('#modal-form').validator().on('submit', function (e) {
-            if (! e.preventDefault()) {
+        $('#modal-form').validator().on('submit', function(e) {
+            if (!e.preventDefault()) {
                 $.post($('#modal-form form').attr('action'), $('#modal-form form').serialize())
                     .done((response) => {
                         $('#modal-form').modal('hide');
@@ -136,7 +165,7 @@
             }
         });
 
-        $('[name=select_all]').on('click', function () {
+        $('[name=select_all]').on('click', function() {
             $(':checkbox').prop('checked', this.checked);
         });
     });
@@ -194,22 +223,24 @@
     }
 
     function deleteSelected(url) {
-        if ($('input:checked').length > 1) {
+        let selected = $('input[name="id_produk[]"]:checked'); // Ambil semua checkbox yang dicentang
+        if (selected.length > 0) {
             if (confirm('Yakin ingin menghapus data terpilih?')) {
-                $.post(url, $('.form-produk').serialize())
+                let formData = $('.form-produk').serialize(); // Serialize semua data form
+                $.post(url, formData)
                     .done((response) => {
-                        table.ajax.reload();
+                        table.ajax.reload(); // Reload tabel setelah berhasil
+                        alert(response.message); // Tampilkan pesan sukses
                     })
-                    .fail((errors) => {
-                        alert('Tidak dapat menghapus data');
-                        return;
+                    .fail((xhr) => {
+                        alert(xhr.responseJSON.message || 'Terjadi kesalahan.');
                     });
             }
         } else {
-            alert('Pilih data yang akan dihapus');
-            return;
+            alert('Pilih produk yang akan dihapus');
         }
     }
+
 
     function cetakBarcode(url) {
         if ($('input:checked').length < 1) {
@@ -233,13 +264,13 @@
         $('#modal-add-stock #produk_id').val(produkId); // Isi produk_id
     }
 
-    $('#modal-add-stock form').on('submit', function (e) {
+    $('#modal-add-stock form').on('submit', function(e) {
         e.preventDefault();
         $.ajax({
             type: 'put',
             url: $(this).attr('action'),
             data: $(this).serialize(),
-            success: (response) => {    
+            success: (response) => {
                 $('#modal-add-stock').modal('hide');
                 table.ajax.reload();
             },
@@ -257,7 +288,7 @@
         $('#modal-reduce-stock #produk_id').val(produkId); // Isi produk_id
     }
 
-    $('#modal-reduce-stock form').on('submit', function (e) {
+    $('#modal-reduce-stock form').on('submit', function(e) {
         e.preventDefault();
         $.ajax({
             type: 'put', // Ubah ke PUT jika menggunakan RESTful
@@ -274,8 +305,9 @@
             }
         });
     });
+
     function showImportModal() {
-    $('#importModal').modal('show');
-}
+        $('#importModal').modal('show');
+    }
 </script>
 @endpush

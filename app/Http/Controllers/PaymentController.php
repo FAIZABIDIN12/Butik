@@ -13,72 +13,53 @@ class PaymentController extends Controller
     {
         // Fetch all payments
         $payments = Payment::all();
-    
+
         // Example of getting a specific payment ID (adjust based on your logic)
         $firstPayment = $payments->first(); // Get the first payment for example
         $paymentId = $firstPayment ? $firstPayment->id : null; // Set it or null if no payments exist
-    
+
         // Calculate balances
         $cashBalance = $payments->where('metode_pembayaran', 'tunai')->sum('amount');
         $nonCashBalance = $payments->where('metode_pembayaran', 'non_tunai')->sum('amount');
         $totalSales = $payments->sum('amount');
-    
+
         // Fetch withdrawal history
         $withdrawals = Withdraw::all();
-    
+
         // Return the view with all variables
         return view('report.report_penjualan', compact('cashBalance', 'nonCashBalance', 'totalSales', 'withdrawals', 'paymentId'));
     }
-    
-  
+
+
     public function withdraw(Request $request)
     {
         // Validasi data yang diterima
         $request->validate([
-            'amount' => 'required|numeric|min:0',
+            'amount' => 'required|numeric|min:1', // Pastikan amount tidak nol atau negatif
             'method' => 'required|in:tunai,non_tunai',
             'payment_id' => 'required|exists:payments,id', // Pastikan payment_id valid
         ]);
-    
-        // Ambil pembayaran tertentu
+
+        // Ambil data pembayaran terkait
         $payment = Payment::find($request->payment_id);
-    
-        // Logika untuk penarikan berdasarkan metode pembayaran
-        if ($request->method == 'tunai') {
-            // Pastikan kita mengurangi dari saldo tunai
-            if ($payment->amount >= $request->amount) { // Pastikan amount di sini merujuk ke saldo tunai
-                $payment->amount -= $request->amount; // Kurangi saldo tunai
-                $payment->save(); // Simpan perubahan ke database
-                
-                // Simpan data penarikan ke tabel withdrawals
-                Withdraw::create([
-                    'payment_id' => $request->payment_id,
-                    'amount' => $request->amount,
-                    'method' => $request->method,
-                ]);
-                
-                return redirect()->back()->with('success', 'Penarikan tunai berhasil dan saldo berhasil diperbarui!');
-            } else {
-                return redirect()->back()->withErrors(['amount' => 'Saldo tidak cukup untuk penarikan ini.']);
-            }
-        } elseif ($request->method == 'non_tunai') {
-            // Pastikan kita mengurangi dari saldo non tunai
-            if ($payment->amount >= $request->amount) { // Menggunakan field untuk non tunai
-                $payment->amount -= $request->amount; // Kurangi saldo non tunai
-                $payment->save(); // Simpan perubahan ke database
-    
-                // Simpan data penarikan ke tabel withdrawals
-                Withdraw::create([
-                    'payment_id' => $request->payment_id,
-                    'amount' => $request->amount,
-                    'method' => $request->method,
-                ]);
-                
-                return redirect()->back()->with('success', 'Penarikan non tunai berhasil dan saldo berhasil diperbarui!');
-            } else {
-                return redirect()->back()->withErrors(['amount' => 'Saldo non tunai tidak cukup untuk penarikan ini.']);
-            }
+
+        // Periksa apakah saldo mencukupi
+        if ($payment->amount < $request->amount) {
+            return redirect()->back()->withErrors(['amount' => 'Saldo tidak cukup untuk penarikan ini.']);
         }
+
+        // Kurangi saldo sesuai jumlah penarikan
+        $payment->amount -= $request->amount;
+        $payment->save(); // Simpan perubahan saldo ke database
+
+        // Simpan data penarikan ke tabel withdrawals
+        Withdraw::create([
+            'payment_id' => $payment->id, // Pastikan ini merujuk ke ID pembayaran yang valid
+            'amount' => $request->amount,
+            'method' => $request->method,
+        ]);
+
+        // Redirect dengan pesan sukses
+        return redirect()->back()->with('success', 'Penarikan berhasil dan saldo telah diperbarui.');
     }
-    
 }

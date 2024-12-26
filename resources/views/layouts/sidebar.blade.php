@@ -97,6 +97,11 @@
                     <i class="fa fa-history blue-icon"></i> <span class="menu-text">History Penjualan</span>
                 </a>
             </li>
+            <li>
+                <a href="{{ route('transaction.index') }}">
+                    <i class="fa fa-briefcase blue-icon"></i> <span class="menu-text">Cashflow</span>
+                </a>
+            </li>
             @endif
         </ul>
     </section>
